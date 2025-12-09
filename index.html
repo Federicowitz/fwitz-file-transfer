@@ -104,7 +104,11 @@
 
         function init() {
             // Crea l'identità Peer
-            peer = new Peer(myId);
+            peer = new Peer(myId, {
+                config: {
+                    iceServers: [] // <--- ARRAY VUOTO! Disabilita server STUN esterni
+                }
+            });
 
             peer.on('open', (id) => {
                 if (targetId) {
