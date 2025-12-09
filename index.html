@@ -3,499 +3,255 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Federicowitz Share</title>
-    <!-- Librerie essenziali (PeerJS per rete, QRCode per grafica) -->
+    <title>EasyShare P2P</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
-    
     <style>
-        /* --- STILI UI MODERNIZZATI --- */
-        :root {
-            --primary: #2563eb;       /* Blu moderno */
-            --success: #10b981;       /* Verde smeraldo */
-            --bg: #f3f4f6;            /* Grigio chiaro sfondo */
-            --card: #ffffff;
-            --text-main: #1f2937;
-            --text-muted: #6b7280;
-        }
-
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background-color: var(--bg);
-            color: var(--text-main);
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
-
-        .container {
-            max-width: 500px;
-            margin: 20px auto;
-            padding: 0 20px;
-            flex: 1; /* Spinge il footer in basso */
-        }
-
-        h1 {
-            text-align: center;
-            font-size: 1.5rem;
-            margin-bottom: 20px;
-            color: var(--text-main);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
-
-        /* CARD */
-        .card {
-            background: var(--card);
-            border-radius: 16px;
-            padding: 24px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            margin-bottom: 20px;
-            transition: transform 0.2s;
-        }
-
-        /* TOGGLE SWITCH */
-        .settings-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: #eef2ff;
-            padding: 12px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-            border: 1px solid #e0e7ff;
-        }
-        .settings-label { font-size: 0.9rem; font-weight: 600; }
+        :root { --primary: #007bff; --bg: #f8f9fa; --card: #ffffff; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: #333; margin: 0; padding: 20px; text-align: center; }
         
-        .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .4s; border-radius: 34px; }
-        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
-        input:checked + .slider { background-color: var(--success); }
-        input:checked + .slider:before { transform: translateX(20px); }
-
+        .container { max-width: 600px; margin: auto; }
+        h2 { margin-bottom: 5px; color: #2c3e50; }
+        
+        /* CARD DI STATO */
+        .status-card { background: var(--card); padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .status-text { font-weight: bold; font-size: 1.1em; color: #666; }
+        .connected { color: #28a745; }
+        
         /* QR AREA */
-        #connection-panel { text-align: center; }
-        #qr-canvas { border: 8px solid white; border-radius: 16px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); margin: 10px 0; max-width: 100%; }
-        .link-box {
-            background: #f8fafc;
-            padding: 10px;
-            border-radius: 8px;
-            font-size: 0.85rem;
-            color: var(--primary);
-            word-break: break-all;
-            cursor: pointer;
-            border: 1px dashed #cbd5e1;
-            margin-top: 10px;
-        }
-        .link-box:active { background: #e0f2fe; }
+        #qr-area { display: none; animation: fadeIn 0.5s; }
+        canvas { border: 8px solid white; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin: 15px 0; }
+        .instruction { font-size: 0.9em; color: #666; margin-bottom: 10px; }
+        
+        /* INTERFACCIA TRASFERIMENTO (Split View) */
+        #transfer-area { display: none; text-align: left; }
+        .split-container { display: flex; flex-direction: column; gap: 15px; }
+        
+        .panel { background: var(--card); padding: 15px; border-radius: 10px; border: 1px solid #eee; }
+        .panel h3 { margin-top: 0; font-size: 1em; text-transform: uppercase; color: #888; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px; }
+        
+        /* AREA INVIO */
+        .upload-btn-wrapper { position: relative; overflow: hidden; display: inline-block; width: 100%; }
+        .btn-upload { border: 2px dashed var(--primary); color: var(--primary); background-color: white; padding: 20px; border-radius: 8px; font-size: 16px; font-weight: bold; width: 100%; cursor: pointer; transition: 0.2s; text-align: center; }
+        .btn-upload:hover { background-color: #eaf4ff; }
+        .upload-btn-wrapper input[type=file] { font-size: 100px; position: absolute; left: 0; top: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
 
-        /* UPLOAD BUTTON */
-        .upload-btn {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            border: 2px dashed var(--primary);
-            background: #eff6ff;
-            color: var(--primary);
-            padding: 30px;
-            border-radius: 12px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.2s;
-        }
-        .upload-btn:hover { background: #dbeafe; transform: scale(1.01); }
-        input[type="file"] { display: none; }
+        /* AREA RICEZIONE */
+        .file-list { list-style: none; padding: 0; margin: 0; }
+        .file-item { display: flex; align-items: center; justify-content: space-between; background: #f8f9fa; margin-bottom: 8px; padding: 10px; border-radius: 6px; border-left: 4px solid #28a745; }
+        .file-info { font-size: 0.9em; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 60%; }
+        .download-btn { background: #28a745; color: white; text-decoration: none; padding: 5px 12px; border-radius: 4px; font-size: 0.85em; font-weight: bold; }
 
-        /* PROGRESS BAR REALE */
-        .progress-container { margin-top: 15px; display: none; }
-        .progress-header { display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 5px; color: var(--text-muted); }
-        .progress-track { width: 100%; background: #e5e7eb; height: 8px; border-radius: 4px; overflow: hidden; }
-        .progress-fill { height: 100%; background: var(--primary); width: 0%; transition: width 0.1s linear; }
+        /* LOG MESSAGGI */
+        .system-msg { font-size: 0.8em; color: #aaa; text-align: center; margin-top: 5px; }
 
-        /* FILE LIST */
-        .file-item {
-            background: #f9fafb;
-            padding: 12px;
-            border-radius: 8px;
-            border-left: 4px solid var(--success);
-            margin-top: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .file-name { font-weight: 500; font-size: 0.9rem; }
-        .btn-download {
-            background: var(--success); color: white;
-            text-decoration: none; padding: 6px 12px;
-            border-radius: 6px; font-size: 0.8rem; font-weight: 600;
-        }
-
-        /* STATUS BADGE */
-        .status-badge {
-            display: inline-block; padding: 4px 12px; border-radius: 20px;
-            font-size: 0.8rem; font-weight: 700; background: #e5e7eb; color: var(--text-muted); margin-bottom: 15px;
-        }
-        .status-connected { background: #d1fae5; color: #065f46; }
-        .status-error { background: #fee2e2; color: #991b1b; }
-
-        /* FOOTER */
-        footer {
-            text-align: center;
-            padding: 20px;
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            border-top: 1px solid #e5e7eb;
-            background: white;
-            margin-top: auto; /* Sticky bottom */
-        }
-        footer a { color: var(--text-muted); text-decoration: none; margin: 0 5px; }
-        footer a:hover { color: var(--primary); text-decoration: underline; }
-
-        /* UTILS */
-        .hidden { display: none; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1>
-            <span id="shield-icon">🛡️</span> Federicowitz Share
-        </h1>
-
-        <!-- CARD 1: CONNESSIONE -->
-        <div class="card" id="setup-card">
+        <h2>🚀 EasyShare P2P</h2>
+        
+        <div class="status-card">
+            <div id="status" class="status-text">Inizializzazione...</div>
             
-            <!-- SWITCHER MODALITÀ (Solo se sei Host) -->
-            <div id="config-panel" class="settings-bar">
-                <div>
-                    <div class="settings-label">Modalità Bunker (LAN)</div>
-                    <div style="font-size:0.75rem; color:#666">Solo rete locale, niente internet</div>
-                </div>
-                <label class="switch">
-                    <!-- Default CHECKED per Bunker Mode -->
-                    <input type="checkbox" id="modeSwitch" checked>
-                    <span class="slider"></span>
-                </label>
-            </div>
-
-            <div id="connection-panel">
-                <div id="status-badge" class="status-badge">Inizializzazione...</div>
-                
-                <div id="qr-container" class="hidden">
-                    <canvas id="qr-canvas"></canvas>
-                    <p style="font-size:0.85rem; color:#666; margin:5px 0;">Scansiona per connetterti</p>
-                    
-                    <!-- LINK TESTUALE COPIABILE -->
-                    <div class="link-box" onclick="copyLink()" id="link-text">
-                        Generazione link...
-                    </div>
-                </div>
+            <!-- Area QR Code (Visibile solo se sei l'Host e non connesso) -->
+            <div id="qr-area">
+                <canvas id="qr-canvas"></canvas>
+                <div class="instruction">Inquadra con la fotocamera per connetterti</div>
+                <button onclick="copyLink()" style="background:none; border:none; color:#007bff; cursor:pointer; text-decoration:underline;">Copia Link</button>
             </div>
         </div>
 
-        <!-- CARD 2: TRASFERIMENTO (Appare dopo connessione) -->
-        <div id="transfer-area" class="hidden">
-            
-            <!-- SEZIONE INVIO -->
-            <div class="card">
-                <h3 style="margin-top:0; font-size:1rem; color:var(--text-muted)">📤 INVIA FILE</h3>
-                <label class="upload-btn">
-                    <span style="font-size:2rem">📄</span>
-                    <span>Tocca per selezionare i file</span>
-                    <input type="file" id="fileInput">
-                </label>
-
-                <!-- BARRA PROGRESSO INVIO -->
-                <div id="send-progress" class="progress-container">
-                    <div class="progress-header">
-                        <span>Invio in corso...</span>
-                        <span id="send-percent">0%</span>
-                    </div>
-                    <div class="progress-track">
-                        <div class="progress-fill" id="send-fill"></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- SEZIONE RICEZIONE -->
-            <div class="card">
-                <h3 style="margin-top:0; font-size:1rem; color:var(--text-muted)">📥 FILE RICEVUTI</h3>
+        <!-- Area Operativa (Visibile dopo connessione) -->
+        <div id="transfer-area">
+            <div class="split-container">
                 
-                <!-- BARRA PROGRESSO RICEZIONE -->
-                <div id="rec-progress" class="progress-container">
-                    <div class="progress-header">
-                        <span id="rec-filename">Ricezione...</span>
-                        <span id="rec-percent">0%</span>
+                <!-- PANNELLO INVIO -->
+                <div class="panel">
+                    <h3>📤 Invia File</h3>
+                    <div class="upload-btn-wrapper">
+                        <button class="btn-upload">📎 Tocca per scegliere i file</button>
+                        <input type="file" id="fileInput">
                     </div>
-                    <div class="progress-track">
-                        <div class="progress-fill" id="rec-fill"></div>
-                    </div>
+                    <div id="send-log"></div>
                 </div>
 
-                <div id="file-list"></div>
-                <div id="empty-msg" style="text-align:center; color:#9ca3af; font-size:0.9rem; padding:10px;">
-                    In attesa di file...
+                <!-- PANNELLO RICEZIONE -->
+                <div class="panel">
+                    <h3>📥 File Ricevuti</h3>
+                    <div id="empty-state" style="text-align:center; color:#ccc; padding:10px;">Nessun file ricevuto</div>
+                    <ul id="received-list" class="file-list"></ul>
                 </div>
+
             </div>
         </div>
     </div>
 
-    <!-- FOOTER CUSTOM -->
-    <footer>
-        <p>Made by <strong>Federicowitz</strong></p>
-        <p>
-            <a href="#">Il mio Sito</a> • 
-            <a href="#">Instagram</a> • 
-            <a href="#">Supporto</a>
-        </p>
-    </footer>
-
-    <!-- LOGICA JAVASCRIPT -->
     <script>
-        // --- STATO GLOBALE ---
+        // CONFIGURAZIONE
+        // Questo oggetto Peer gestisce la connessione
         let peer;
         let conn;
-        let myId = Math.random().toString(36).substr(2, 5).toUpperCase();
         
-        // Elementi DOM
-        const modeSwitch = document.getElementById('modeSwitch');
-        const shieldIcon = document.getElementById('shield-icon');
-        const statusBadge = document.getElementById('status-badge');
-        
-        // Parametri URL (se sei l'ospite che ha scansionato)
+        // Controlla se nell'URL c'è già un ID a cui connettersi (es: ?connectTo=ABCDE)
         const urlParams = new URLSearchParams(window.location.search);
         const targetId = urlParams.get('connectTo');
 
-        // --- CONFIGURAZIONE RETE ---
-        const ICE_BUNKER = []; // Vuoto = Solo LAN (Default)
-        const ICE_PUBLIC = [{ urls: 'stun:stun.l.google.com:19302' }]; // Backup
-
-        // --- INIZIALIZZAZIONE ---
-        
-        // Se c'è un targetId, nascondiamo le impostazioni (sei l'ospite)
-        if (targetId) {
-            document.getElementById('config-panel').style.display = 'none';
-        }
-
-        // Listener per il cambio modalità
-        modeSwitch.addEventListener('change', () => {
-            restartPeer();
-        });
-
-        function restartPeer() {
-            if(peer) peer.destroy();
-            init();
-        }
+        // Genera un ID casuale breve
+        const myId = Math.random().toString(36).substr(2, 5).toUpperCase();
 
         function init() {
-            updateUIState();
-
-            // Configurazione in base allo switch
-            // Se lo switch è ON -> Bunker (Array Vuoto)
-            // Se lo switch è OFF -> Public (Google STUN)
-            const config = { 
-                iceServers: modeSwitch.checked ? ICE_BUNKER : ICE_PUBLIC 
-            };
-
-            peer = new Peer(myId, { config: config, debug: 1 });
+            // Crea l'identità Peer
+            peer = new Peer(myId);
 
             peer.on('open', (id) => {
-                myId = id; // PeerJS conferma l'ID
-                
                 if (targetId) {
-                    setStatus("Connessione all'Host...", "waiting");
-                    connectToHost(targetId);
+                    // SCENARIO OSPITE: Ho trovato un ID nell'URL, mi connetto subito
+                    setStatus("Connessione all'Host...", false);
+                    connectToPeer(targetId);
                 } else {
-                    setStatus("Pronto. Scansiona:", "ready");
-                    generateQR(id);
+                    // SCENARIO HOST: Sono il primo, mostro il QR
+                    setStatus("In attesa di scansione...", false);
+                    generateQRCode(id);
                 }
             });
 
-            peer.on('connection', (c) => handleConnection(c));
+            // Quando qualcuno si connette a me
+            peer.on('connection', (connection) => {
+                handleConnection(connection);
+            });
 
             peer.on('error', (err) => {
+                setStatus("Errore: " + err.type, false);
                 console.error(err);
-                setStatus("Errore: " + err.type, "error");
-                if (modeSwitch.checked && err.type === 'peer-unavailable') {
-                    alert("Errore Bunker Mode: I dispositivi non sembrano essere sulla stessa WiFi.");
-                }
             });
         }
 
-        function updateUIState() {
-            // Aggiorna icone in base alla modalità
-            if (modeSwitch.checked) {
-                shieldIcon.style.display = 'inline';
-                shieldIcon.title = "Modalità Bunker Attiva";
-            } else {
-                shieldIcon.style.display = 'none';
-            }
+        // Funzione per connettersi attivamente (lato Ospite)
+        function connectToPeer(remoteId) {
+            const connection = peer.connect(remoteId);
+            connection.on('open', () => {
+                handleConnection(connection);
+            });
         }
 
-        function connectToHost(id) {
-            const c = peer.connect(id, { reliable: true });
-            c.on('open', () => handleConnection(c));
-            // Timeout di sicurezza
-            setTimeout(() => {
-                if(!conn || !conn.open) setStatus("Connessione lenta... riprova.", "error");
-            }, 8000);
-        }
-
-        function handleConnection(c) {
-            conn = c;
-            setStatus("🟢 Connesso!", "connected");
+        // Logica comune una volta connessi
+        function handleConnection(connection) {
+            conn = connection;
             
-            // Nascondi QR e Config, Mostra Trasferimento
-            document.getElementById('config-panel').style.display = 'none';
-            document.getElementById('qr-container').style.display = 'none';
-            document.getElementById('transfer-area').classList.remove('hidden');
+            // UI Update
+            setStatus("🟢 Connesso!", true);
+            document.getElementById('qr-area').style.display = 'none';
+            document.getElementById('transfer-area').style.display = 'block';
 
-            conn.on('data', (data) => handleIncomingData(data));
-            conn.on('close', () => { alert("Disconnesso"); location.reload(); });
-            conn.on('error', (err) => console.error("Conn Error", err));
+            // Gestione dati in arrivo
+            conn.on('data', (data) => {
+                if (data.file) {
+                    handleReceivedFile(data);
+                }
+            });
+
+            conn.on('close', () => {
+                setStatus("🔴 Disconnesso", false);
+                document.getElementById('transfer-area').style.display = 'none';
+            });
         }
 
-        // --- MOTORE DI INVIO FILE (Backpressure / Anti-Crash) ---
-        const CHUNK_SIZE = 16 * 1024; // 16KB per pacchetto
-        const MAX_BUFFER = 64 * 1024; // Max 64KB in buffer browser
+        // Gestione Ricezione File
+        function handleReceivedFile(data) {
+            const blob = new Blob([data.file]);
+            const url = URL.createObjectURL(blob);
+            
+            const list = document.getElementById('received-list');
+            document.getElementById('empty-state').style.display = 'none';
 
+            const li = document.createElement('li');
+            li.className = 'file-item';
+            li.innerHTML = `
+                <div class="file-info">
+                    <strong>${data.name}</strong><br>
+                    <small>${formatBytes(data.size)}</small>
+                </div>
+                <a href="${url}" download="${data.name}" class="download-btn">SCARICA</a>
+            `;
+            list.prepend(li); // Aggiungi in cima
+        }
+
+        // Gestione Invio File
         document.getElementById('fileInput').addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file || !conn) return;
 
-            // UI Reset
-            document.getElementById('send-progress').style.display = 'block';
-            updateProgress('send', 0);
+            // Feedback visuale immediato
+            const btn = document.querySelector('.btn-upload');
+            const originalText = btn.innerText;
+            btn.innerText = "⏳ Invio in corso...";
+            
+            // Invio effettivo
+            conn.send({
+                file: file,
+                name: file.name,
+                size: file.size
+            });
 
-            // 1. Manda Header
-            conn.send({ type: 'HEAD', name: file.name, size: file.size });
+            // Reset UI
+            setTimeout(() => {
+                btn.innerText = "✅ Inviato!";
+                setTimeout(() => btn.innerText = originalText, 2000);
+            }, 500);
 
-            let offset = 0;
-
-            // 2. Loop di invio con controllo buffer
-            while (offset < file.size) {
-                // Se il buffer è pieno, PAUSA finché non si svuota
-                if (conn.dataChannel.bufferedAmount > MAX_BUFFER) {
-                    await new Promise(r => setTimeout(r, 10)); // Aspetta 10ms
-                    continue; // Riprova
-                }
-
-                // Leggi e invia chunk
-                const chunk = file.slice(offset, offset + CHUNK_SIZE);
-                const buffer = await chunk.arrayBuffer();
-                conn.send(buffer);
-
-                offset += buffer.byteLength;
-
-                // Aggiorna UI ogni tanto
-                if (offset % (CHUNK_SIZE * 50) === 0 || offset >= file.size) {
-                    const pct = Math.round((offset / file.size) * 100);
-                    updateProgress('send', pct);
-                }
-            }
-
-            // 3. Manda Fine
-            conn.send({ type: 'DONE' });
-            setTimeout(() => document.getElementById('send-progress').style.display = 'none', 2000);
+            // Log locale
+            const log = document.getElementById('send-log');
+            log.innerHTML += `<div class="system-msg">Hai inviato: ${file.name}</div>`;
         });
 
-        // --- MOTORE RICEZIONE FILE ---
-        let rxBuffer = [], rxMeta = null, rxSize = 0;
-
-        function handleIncomingData(data) {
-            if (data.type === 'HEAD') {
-                rxMeta = data; rxBuffer = []; rxSize = 0;
-                document.getElementById('rec-progress').style.display = 'block';
-                document.getElementById('rec-filename').textContent = "Ricezione: " + data.name;
-            } 
-            else if (data.type === 'DONE') {
-                saveFile();
-            } 
-            else {
-                // È un ArrayBuffer (Chunk dati)
-                rxBuffer.push(data);
-                rxSize += data.byteLength;
-                
-                // Aggiorna UI
-                if (rxMeta && rxSize % (CHUNK_SIZE * 50) === 0) {
-                    const pct = Math.round((rxSize / rxMeta.size) * 100);
-                    updateProgress('rec', pct);
-                }
-            }
-        }
-
-        function saveFile() {
-            const blob = new Blob(rxBuffer);
-            const url = URL.createObjectURL(blob);
+        // Generatore QR Code "Intelligente" (Link completo)
+        function generateQRCode(id) {
+            const qrCanvas = document.getElementById('qr-canvas');
+            const qrArea = document.getElementById('qr-area');
             
-            const div = document.createElement('div');
-            div.className = 'file-item';
-            div.innerHTML = `
-                <div class="file-name">${rxMeta.name} <br> <small style="color:#aaa">${formatBytes(rxMeta.size)}</small></div>
-                <a href="${url}" download="${rxMeta.name}" class="btn-download">SCARICA</a>
-            `;
+            // Costruiamo l'URL completo. 
+            // IMPORTANTE: Questo funziona bene se la pagina è su un server (es. miosito.com).
+            // Se sei in locale, userà l'IP se configurato o localhost (che non va da telefono a telefono).
+            const currentUrl = window.location.href.split('?')[0]; 
+            const fullLink = `${currentUrl}?connectTo=${id}`;
             
-            document.getElementById('file-list').prepend(div);
-            document.getElementById('empty-msg').style.display = 'none';
-            document.getElementById('rec-progress').style.display = 'none';
-            
-            rxBuffer = []; rxMeta = null;
-        }
-
-        // --- FUNZIONI GRAFICHE & UTILITÀ ---
-        
-        function setStatus(msg, type) {
-            const el = document.getElementById('status-badge');
-            el.textContent = msg;
-            el.className = 'status-badge'; // Reset
-            if (type === 'connected') el.classList.add('status-connected');
-            if (type === 'error') el.classList.add('status-error');
-        }
-
-        function updateProgress(type, pct) {
-            document.getElementById(`${type}-fill`).style.width = pct + '%';
-            document.getElementById(`${type}-percent`).textContent = pct + '%';
-        }
-
-        function generateQR(id) {
-            // Ottieni URL base pulito (senza parametri vecchi)
-            const baseUrl = window.location.href.split('?')[0];
-            const fullLink = `${baseUrl}?connectTo=${id}`;
-            
-            // Genera QR
-            const canvas = document.getElementById('qr-canvas');
-            QRCode.toCanvas(canvas, fullLink, { width: 220, margin: 1, color: { dark: "#1f2937" } }, (err) => {
-                if(!err) document.getElementById('qr-container').classList.remove('hidden');
+            QRCode.toCanvas(qrCanvas, fullLink, { width: 200, margin: 2 }, (error) => {
+                if (error) console.error(error);
+                qrArea.style.display = 'block';
             });
 
-            // Mostra Link Testuale
-            const linkBox = document.getElementById('link-text');
-            linkBox.textContent = fullLink;
-            linkBox.dataset.link = fullLink; // Salva per copia
+            window.shareLink = fullLink; // Salva per il copia incolla
         }
 
+        // Utility: Copia Link
         function copyLink() {
-            const link = document.getElementById('link-text').dataset.link;
-            navigator.clipboard.writeText(link).then(() => {
-                const original = document.getElementById('link-text').textContent;
-                document.getElementById('link-text').textContent = "Copiato negli appunti! ✅";
-                setTimeout(() => document.getElementById('link-text').textContent = original, 2000);
+            navigator.clipboard.writeText(window.shareLink).then(() => {
+                alert("Link copiato! Invialo via chat se il QR non va.");
             });
         }
 
-        function formatBytes(bytes) {
-            if (bytes === 0) return '0 B';
-            const i = Math.floor(Math.log(bytes) / Math.log(1024));
-            return parseFloat((bytes / Math.pow(1024, i)).toFixed(2)) + ' ' + ['B', 'KB', 'MB', 'GB'][i];
+        // Utility: Stato UI
+        function setStatus(msg, isConnected) {
+            const el = document.getElementById('status');
+            el.textContent = msg;
+            if(isConnected) el.classList.add('connected');
+            else el.classList.remove('connected');
         }
 
-        // Avvio app
+        // Utility: Formato Bytes
+        function formatBytes(bytes, decimals = 2) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+        }
+
+        // Avvio
         init();
 
     </script>
