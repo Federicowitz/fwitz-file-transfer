@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>P2P QR Link</title>
+    <!-- Librerie per comprimere i dati, generare QR e leggere QR -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <style>
+        body {
+            font-family: sans-serif;
+            text-align: center;
+            padding: 10px;
+            background: #222;
+            color: #fff;
+        }
+
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            font-size: 18px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        #qr-canvas {
+            margin: 20px auto;
+            display: none;
+            border: 5px solid white;
+        }
+
+        #reader {
+            width: 100%;
+            max-width: 400px;
+            margin: auto;
+            display: none;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .box {
+            background: #333;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        #status {
+            font-weight: bold;
+            color: #ffc107;
+        }
+
+        input[type="file"] {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h2>⚡ P2P Serverless Lan</h2>
+    <p id="status">Disconnesso</p>
+
+    <!-- STEP 1: SCELTA RUOLO -->
+    <div id="setup-panel">
+        <button class="btn btn-primary" onclick="startAsInitiator()">1. Sono il MITTENTE (Crea Stanza)</button>
+        <button class="btn btn-success" onclick="startAsReceiver()">2. Sono il RICEVENTE (Entra)</button>
+    </div>
+
+    <!-- AREA VIDEO SCANNER -->
+    <div id="reader"></div>
+
+    <!-- AREA QR CODE DA MOSTRARE -->
+    <canvas id="qr-canvas"></canvas>
+    <p id="instruction" class="hidden"></p>
+
+    <!-- AREA TRASFERIMENTO FILE (Visibile solo dopo connessione) -->
+    <div id="file-panel" class="hidden box">
+        <h3>Trasferimento File</h3>
+        <input type="file" id="fileInput">
+        <div id="downloads" style="text-align: left; margin-top:15px;"></div>
+    </div>
+
+    <script>
+        const rtcConfig = { iceServers: [] }; // Solo LAN, niente server esterni
+        let pc, dataChannel;
+        let html5QrCode;
+
+        // --- GESTIONE WEBRTC ---
+
+        function initPeer() {
+            pc = new RTCPeerConnection(rtcConfig);
+
+            pc.onicecandidate = e => {
+                if (!e.candidate) {
+                    // ICE Gathering finito: generiamo il QR finale
+                    const data = JSON.stringify(pc.localDescription);
+                    const compressed = LZString.compressToBase64(data);
+                    showQR(compressed);
+                }
+            };
+
+            pc.ondatachannel = e => {
+                setupChannel(e.channel);
+            };
+
+            pc.onconnectionstatechange = () => {
+                if (pc.connectionState === 'connected') {
+                    document.getElementById('status').textContent = "🟢 CONNESSO!";
+                    document.getElementById('status').style.color = "#28a745";
+                    document.getElementById('setup-panel').classList.add('hidden');
+                    document.getElementById('qr-canvas').style.display = 'none';
+                    document.getElementById('reader').style.display = 'none';
+                    document.getElementById('instruction').classList.add('hidden');
+                    document.getElementById('file-panel').classList.remove('hidden');
+                    if (html5QrCode) html5QrCode.stop();
+                }
+            };
+        }
+
+        function setupChannel(channel) {
+            dataChannel = channel;
+            dataChannel.onopen = () => console.log("Canale Aperto");
+            dataChannel.onmessage = handleMessage;
+        }
+
+        // --- FLUSSO MITTENTE (INITIATOR) ---
+        async function startAsInitiator() {
+            initPeer();
+            // Il mittente crea il canale dati
+            const dc = pc.createDataChannel("chat");
+            setupChannel(dc);
+
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+
+            document.getElementById('instruction').textContent = "Mostra questo QR al Ricevente, poi scansiona la sua risposta.";
+            document.getElementById('instruction').classList.remove('hidden');
+            document.getElementById('setup-panel').classList.add('hidden');
+        }
+
+        // --- FLUSSO RICEVENTE ---
+        function startAsReceiver() {
+            initPeer();
+            document.getElementById('setup-panel').classList.add('hidden');
+            startScanner(async (decodedText) => {
+                // Ho scansionato l'offerta del Mittente
+                stopScanner();
+                document.getElementById('status').textContent = "Elaborazione Offerta...";
+
+                const decompressed = LZString.decompressFromBase64(decodedText);
+                const offer = JSON.parse(decompressed);
+
+                await pc.setRemoteDescription(offer);
+                const answer = await pc.createAnswer();
+                await pc.setLocalDescription(answer);
+
+                document.getElementById('instruction').textContent = "Ora mostra questo QR al Mittente per finire.";
+                document.getElementById('instruction').classList.remove('hidden');
+            });
+        }
+
+        // --- LOGICA SCANNER QR ---
+        function startScanner(onSuccess) {
+            document.getElementById('qr-canvas').style.display = 'none';
+            document.getElementById('reader').style.display = 'block';
+            document.getElementById('instruction').textContent = "Inquadra il QR dell'altro dispositivo";
+            document.getElementById('instruction').classList.remove('hidden');
+
+            html5QrCode = new Html5Qrcode("reader");
+            html5QrCode.start(
+                { facingMode: "environment" },
+                { fps: 10, qrbox: 250 },
+                (decodedText) => { onSuccess(decodedText); },
+                (errorMessage) => { /* ignora errori di lettura frame */ }
+            );
+        }
+
+        function stopScanner() {
+            if (html5QrCode) html5QrCode.stop().then(() => {
+                document.getElementById('reader').style.display = 'none';
+            });
+        }
+
+        // --- LOGICA GENERAZIONE QR ---
+        function showQR(text) {
+            const canvas = document.getElementById('qr-canvas');
+            canvas.style.display = 'block';
+            QRCode.toCanvas(canvas, text, { width: 250, margin: 2 }, function (error) {
+                if (error) console.error(error);
+            });
+
+            // Se sono il mittente e ho appena mostrato il mio QR, 
+            // devo attivarmi per leggere la risposta (dopo un click o timeout, qui facciamo manuale per semplicità)
+            if (pc.localDescription.type === 'offer') {
+                const btn = document.createElement('button');
+                btn.className = "btn btn-success";
+                btn.innerText = "Ho mostrato il QR -> Scansiona Risposta";
+                btn.onclick = () => {
+                    btn.remove();
+                    startScanner(async (txt) => {
+                        stopScanner();
+                        const decompressed = LZString.decompressFromBase64(txt);
+                        const answer = JSON.parse(decompressed);
+                        await pc.setRemoteDescription(answer);
+                    });
+                };
+                document.getElementById('instruction').appendChild(btn);
+            }
+        }
+
+        // --- TRASFERIMENTO FILE (Semplificato) ---
+        let receivedBuffers = [];
+        let fileMeta = {};
+
+        function handleMessage(event) {
+            const data = event.data;
+            if (typeof data === 'string') {
+                fileMeta = JSON.parse(data);
+                receivedBuffers = [];
+                document.getElementById('status').textContent = "Ricezione: " + fileMeta.name;
+            } else {
+                receivedBuffers.push(data);
+                // Controllo fine file (logica base, per file grandi servirebbe chunking più robusto)
+                const currentSize = receivedBuffers.reduce((acc, val) => acc + val.byteLength, 0);
+                if (currentSize >= fileMeta.size) {
+                    const blob = new Blob(receivedBuffers);
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = fileMeta.name;
+                    link.innerText = "📥 Scarica " + fileMeta.name;
+                    link.style.display = "block";
+                    link.style.color = "#4caf50";
+                    link.style.marginTop = "10px";
+                    document.getElementById('downloads').appendChild(link);
+                    document.getElementById('status').textContent = "File Ricevuto!";
+                }
+            }
+        }
+
+        document.getElementById('fileInput').addEventListener('change', async () => {
+            const file = document.getElementById('fileInput').files[0];
+            if (!file || !dataChannel) return;
+
+            dataChannel.send(JSON.stringify({ name: file.name, size: file.size }));
+
+            const arrayBuffer = await file.arrayBuffer();
+            // WebRTC ha limiti di buffer, inviamo in chunk
+            const chunkSize = 16 * 1024;
+            for (let i = 0; i < arrayBuffer.byteLength; i += chunkSize) {
+                dataChannel.send(arrayBuffer.slice(i, i + chunkSize));
+                // Piccolo delay per non intasare il buffer (metodo grezzo ma efficace per script singoli)
+                await new Promise(r => setTimeout(r, 10));
+            }
+            document.getElementById('status').textContent = "File inviato!";
+        });
+
+    </script>
+</body>
+
+</html>
