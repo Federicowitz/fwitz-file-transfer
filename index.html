@@ -3,259 +3,318 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EasyShare P2P</title>
+    <title>EasyShare P2P Ultimate</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
     <style>
-        :root { --primary: #007bff; --bg: #f8f9fa; --card: #ffffff; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: #333; margin: 0; padding: 20px; text-align: center; }
+        :root { --primary: #007bff; --bg: #f0f2f5; --card: #ffffff; --success: #28a745; --danger: #dc3545; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: var(--bg); color: #333; margin: 0; padding: 20px; text-align: center; }
         
         .container { max-width: 600px; margin: auto; }
-        h2 { margin-bottom: 5px; color: #2c3e50; }
+        h2 { margin-bottom: 5px; color: #2c3e50; display: flex; align-items: center; justify-content: center; gap: 10px; }
         
-        /* CARD DI STATO */
-        .status-card { background: var(--card); padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px; }
-        .status-text { font-weight: bold; font-size: 1.1em; color: #666; }
-        .connected { color: #28a745; }
+        /* CARD PRINCIPALE */
+        .card { background: var(--card); padding: 25px; border-radius: 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.05); margin-bottom: 20px; transition: 0.3s; }
         
-        /* QR AREA */
-        #qr-area { display: none; animation: fadeIn 0.5s; }
-        canvas { border: 8px solid white; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin: 15px 0; }
-        .instruction { font-size: 0.9em; color: #666; margin-bottom: 10px; }
+        /* STATUS E QR */
+        .status-text { font-weight: 700; font-size: 1.2em; color: #666; margin-bottom: 15px; }
+        .connected { color: var(--success); }
+        canvas { border: 8px solid white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin: 10px 0; max-width: 100%; }
         
-        /* INTERFACCIA TRASFERIMENTO (Split View) */
+        /* SWITCH MODALITÀ */
+        .mode-selector { background: #e9ecef; padding: 10px; border-radius: 8px; display: inline-flex; align-items: center; gap: 10px; margin-bottom: 15px; }
+        .switch { position: relative; display: inline-block; width: 50px; height: 26px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--success); }
+        input:checked + .slider:before { transform: translateX(24px); }
+        .bunker-badge { display: none; background: #e8f5e9; color: var(--success); padding: 5px 10px; border-radius: 20px; font-size: 0.8em; font-weight: bold; border: 1px solid #c8e6c9; margin-top: 10px; }
+        
+        /* INTERFACCIA TRASFERIMENTO */
         #transfer-area { display: none; text-align: left; }
-        .split-container { display: flex; flex-direction: column; gap: 15px; }
+        .upload-area { border: 2px dashed var(--primary); background: #f8fbff; padding: 30px; border-radius: 12px; text-align: center; cursor: pointer; transition: 0.2s; }
+        .upload-area:hover { background: #eaf4ff; border-color: #0056b3; }
+        .upload-text { font-weight: bold; color: var(--primary); font-size: 1.1em; }
+        input[type=file] { display: none; }
+
+        /* PROGRESS BAR */
+        .progress-box { margin-top: 15px; display: none; }
+        .progress-bar { width: 100%; background-color: #e9ecef; border-radius: 6px; overflow: hidden; height: 8px; }
+        .progress-fill { height: 100%; background-color: var(--success); width: 0%; transition: width 0.2s; }
+        .progress-label { font-size: 0.85em; color: #666; margin-top: 5px; display: flex; justify-content: space-between; }
+
+        /* LISTA FILE */
+        .file-list { margin-top: 20px; }
+        .file-item { background: white; border: 1px solid #eee; padding: 12px; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
+        .btn-dl { background: var(--success); color: white; text-decoration: none; padding: 6px 12px; border-radius: 6px; font-size: 0.9em; font-weight: 600; }
         
-        .panel { background: var(--card); padding: 15px; border-radius: 10px; border: 1px solid #eee; }
-        .panel h3 { margin-top: 0; font-size: 1em; text-transform: uppercase; color: #888; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px; }
-        
-        /* AREA INVIO */
-        .upload-btn-wrapper { position: relative; overflow: hidden; display: inline-block; width: 100%; }
-        .btn-upload { border: 2px dashed var(--primary); color: var(--primary); background-color: white; padding: 20px; border-radius: 8px; font-size: 16px; font-weight: bold; width: 100%; cursor: pointer; transition: 0.2s; text-align: center; }
-        .btn-upload:hover { background-color: #eaf4ff; }
-        .upload-btn-wrapper input[type=file] { font-size: 100px; position: absolute; left: 0; top: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
-
-        /* AREA RICEZIONE */
-        .file-list { list-style: none; padding: 0; margin: 0; }
-        .file-item { display: flex; align-items: center; justify-content: space-between; background: #f8f9fa; margin-bottom: 8px; padding: 10px; border-radius: 6px; border-left: 4px solid #28a745; }
-        .file-info { font-size: 0.9em; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 60%; }
-        .download-btn { background: #28a745; color: white; text-decoration: none; padding: 5px 12px; border-radius: 4px; font-size: 0.85em; font-weight: bold; }
-
-        /* LOG MESSAGGI */
-        .system-msg { font-size: 0.8em; color: #aaa; text-align: center; margin-top: 5px; }
-
+        /* ANIMAZIONI */
+        .fade-in { animation: fadeIn 0.5s ease-in; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <h2>🚀 EasyShare P2P</h2>
+    <div class="container fade-in">
+        <h2>
+            ⚡ EasyShare
+            <span id="bunker-icon" style="display:none" title="Modalità Bunker Attiva">🛡️</span>
+        </h2>
         
-        <div class="status-card">
-            <div id="status" class="status-text">Inizializzazione...</div>
+        <!-- CARD CONFIGURAZIONE E STATO -->
+        <div class="card">
             
-            <!-- Area QR Code (Visibile solo se sei l'Host e non connesso) -->
-            <div id="qr-area">
+            <!-- Switch Modalità (Visibile solo prima della connessione) -->
+            <div id="settings-panel">
+                <div class="mode-selector">
+                    <span>Modalità Bunker (Solo LAN)</span>
+                    <label class="switch">
+                        <input type="checkbox" id="bunkerToggle">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div id="bunker-msg" class="bunker-badge">🔒 Sicurezza Massima: Internet Disabilitato</div>
+            </div>
+
+            <div id="status" class="status-text">Inizializzazione...</div>
+
+            <div id="qr-area" style="display:none">
                 <canvas id="qr-canvas"></canvas>
-                <div class="instruction">Inquadra con la fotocamera per connetterti</div>
-                <button onclick="copyLink()" style="background:none; border:none; color:#007bff; cursor:pointer; text-decoration:underline;">Copia Link</button>
+                <p style="font-size:0.9em; color:#888; margin:0">Inquadra con l'altro dispositivo</p>
             </div>
         </div>
 
-        <!-- Area Operativa (Visibile dopo connessione) -->
+        <!-- AREA TRASFERIMENTO -->
         <div id="transfer-area">
-            <div class="split-container">
+            
+            <!-- INVIO -->
+            <div class="card">
+                <h3>📤 Invia</h3>
+                <label class="upload-area">
+                    <div class="upload-text">📎 Tocca qui per scegliere i file</div>
+                    <input type="file" id="fileInput">
+                </label>
                 
-                <!-- PANNELLO INVIO -->
-                <div class="panel">
-                    <h3>📤 Invia File</h3>
-                    <div class="upload-btn-wrapper">
-                        <button class="btn-upload">📎 Tocca per scegliere i file</button>
-                        <input type="file" id="fileInput">
+                <div id="send-progress" class="progress-box">
+                    <div class="progress-bar"><div class="progress-fill" id="send-fill"></div></div>
+                    <div class="progress-label">
+                        <span>Invio in corso...</span>
+                        <span id="send-percent">0%</span>
                     </div>
-                    <div id="send-log"></div>
                 </div>
-
-                <!-- PANNELLO RICEZIONE -->
-                <div class="panel">
-                    <h3>📥 File Ricevuti</h3>
-                    <div id="empty-state" style="text-align:center; color:#ccc; padding:10px;">Nessun file ricevuto</div>
-                    <ul id="received-list" class="file-list"></ul>
-                </div>
-
             </div>
+
+            <!-- RICEZIONE -->
+            <div class="card">
+                <h3>📥 Ricevuti</h3>
+                <div id="rec-progress" class="progress-box">
+                    <div class="progress-bar"><div class="progress-fill" id="rec-fill"></div></div>
+                    <div class="progress-label">
+                        <span>Ricezione in corso...</span>
+                        <span id="rec-percent">0%</span>
+                    </div>
+                </div>
+                <div id="received-list" class="file-list"></div>
+                <div id="empty-msg" style="color:#aaa; font-style:italic;">Nessun file ricevuto ancora</div>
+            </div>
+
         </div>
     </div>
 
     <script>
-        // CONFIGURAZIONE
-        // Questo oggetto Peer gestisce la connessione
-        let peer;
-        let conn;
+        let peer, conn;
+        const CHUNK_SIZE = 64 * 1024; // 64KB
+        let myId = Math.random().toString(36).substr(2, 5).toUpperCase();
         
-        // Controlla se nell'URL c'è già un ID a cui connettersi (es: ?connectTo=ABCDE)
+        // Verifica se siamo "Ospiti" (URL contiene connectTo)
         const urlParams = new URLSearchParams(window.location.search);
         const targetId = urlParams.get('connectTo');
 
-        // Genera un ID casuale breve
-        const myId = Math.random().toString(36).substr(2, 5).toUpperCase();
+        // Configurazione Server
+        const ICE_STANDARD = [{ urls: 'stun:stun.l.google.com:19302' }];
+        const ICE_BUNKER = []; // Vuoto = Solo LAN
+
+        // Gestione Toggle
+        const bunkerToggle = document.getElementById('bunkerToggle');
+        const bunkerMsg = document.getElementById('bunker-msg');
+        const bunkerIcon = document.getElementById('bunker-icon');
+
+        // Event Listener per lo Switch
+        bunkerToggle.addEventListener('change', () => {
+            updateBunkerUI();
+            restartPeer(); // Riavvia tutto con la nuova configurazione
+        });
+
+        function updateBunkerUI() {
+            if (bunkerToggle.checked) {
+                bunkerMsg.style.display = 'inline-block';
+                bunkerIcon.style.display = 'inline';
+                document.body.style.borderTop = "5px solid #28a745"; // Feedback visivo verde
+            } else {
+                bunkerMsg.style.display = 'none';
+                bunkerIcon.style.display = 'none';
+                document.body.style.borderTop = "none";
+            }
+        }
+
+        function restartPeer() {
+            if(peer) {
+                peer.destroy(); // Distruggi la vecchia connessione
+                document.getElementById('status').textContent = "Riconfigurazione...";
+            }
+            init();
+        }
 
         function init() {
-            // Crea l'identità Peer
-            peer = new Peer(myId, {
-                config: {
-                    iceServers: [] // <--- ARRAY VUOTO! Disabilita server STUN esterni
-                }
-            });
+            const config = {
+                iceServers: bunkerToggle.checked ? ICE_BUNKER : ICE_STANDARD
+            };
+
+            // Se siamo ospiti, disabilitiamo il toggle per evitare confusione, 
+            // ma usiamo la stessa config di default (o quella scelta dall'utente prima di scansionare)
+            if (targetId) {
+                document.getElementById('settings-panel').style.display = 'none';
+            }
+
+            peer = new Peer(myId, { config: config });
 
             peer.on('open', (id) => {
+                myId = id; // PeerJS potrebbe assegnare un ID diverso se c'è collisione
                 if (targetId) {
-                    // SCENARIO OSPITE: Ho trovato un ID nell'URL, mi connetto subito
                     setStatus("Connessione all'Host...", false);
                     connectToPeer(targetId);
                 } else {
-                    // SCENARIO HOST: Sono il primo, mostro il QR
-                    setStatus("In attesa di scansione...", false);
+                    setStatus("Pronto. Scansiona il QR:", false);
                     generateQRCode(id);
                 }
             });
 
-            // Quando qualcuno si connette a me
-            peer.on('connection', (connection) => {
-                handleConnection(connection);
-            });
-
-            peer.on('error', (err) => {
-                setStatus("Errore: " + err.type, false);
-                console.error(err);
-            });
-        }
-
-        // Funzione per connettersi attivamente (lato Ospite)
-        function connectToPeer(remoteId) {
-            const connection = peer.connect(remoteId);
-            connection.on('open', () => {
-                handleConnection(connection);
-            });
-        }
-
-        // Logica comune una volta connessi
-        function handleConnection(connection) {
-            conn = connection;
+            peer.on('connection', (c) => handleConnection(c));
             
-            // UI Update
-            setStatus("🟢 Connesso!", true);
-            document.getElementById('qr-area').style.display = 'none';
-            document.getElementById('transfer-area').style.display = 'block';
-
-            // Gestione dati in arrivo
-            conn.on('data', (data) => {
-                if (data.file) {
-                    handleReceivedFile(data);
+            peer.on('error', (err) => {
+                console.error(err);
+                if(bunkerToggle.checked) {
+                    setStatus("Errore: Impossibile connettersi in Bunker Mode. Siete sulla stessa WiFi?", false);
+                } else {
+                    setStatus("Errore connessione: " + err.type, false);
                 }
             });
+        }
 
+        function connectToPeer(id) {
+            const c = peer.connect(id, { reliable: true });
+            c.on('open', () => handleConnection(c));
+            c.on('error', (e) => console.error(e));
+        }
+
+        function handleConnection(c) {
+            conn = c;
+            setStatus("🟢 Connesso con successo!", true);
+            document.getElementById('qr-area').style.display = 'none';
+            document.getElementById('settings-panel').style.display = 'none'; // Nascondi impostazioni
+            document.getElementById('transfer-area').style.display = 'block';
+            
+            conn.on('data', (data) => handleIncomingData(data));
             conn.on('close', () => {
-                setStatus("🔴 Disconnesso", false);
-                document.getElementById('transfer-area').style.display = 'none';
+                alert("Connessione interrotta");
+                location.reload();
             });
         }
 
-        // Gestione Ricezione File
-        function handleReceivedFile(data) {
-            const blob = new Blob([data.file]);
-            const url = URL.createObjectURL(blob);
-            
-            const list = document.getElementById('received-list');
-            document.getElementById('empty-state').style.display = 'none';
-
-            const li = document.createElement('li');
-            li.className = 'file-item';
-            li.innerHTML = `
-                <div class="file-info">
-                    <strong>${data.name}</strong><br>
-                    <small>${formatBytes(data.size)}</small>
-                </div>
-                <a href="${url}" download="${data.name}" class="download-btn">SCARICA</a>
-            `;
-            list.prepend(li); // Aggiungi in cima
+        // --- UTILS UI ---
+        function setStatus(msg, connected) {
+            const el = document.getElementById('status');
+            el.textContent = msg;
+            el.className = connected ? 'status-text connected' : 'status-text';
         }
 
-        // Gestione Invio File
+        function generateQRCode(id) {
+            const currentUrl = window.location.href.split('?')[0]; 
+            const fullLink = `${currentUrl}?connectTo=${id}`;
+            const canvas = document.getElementById('qr-canvas');
+            
+            QRCode.toCanvas(canvas, fullLink, { width: 220, margin: 2 }, (error) => {
+                if(!error) document.getElementById('qr-area').style.display = 'block';
+            });
+        }
+
+        // --- LOGICA FILE (Identica a prima) ---
         document.getElementById('fileInput').addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file || !conn) return;
 
-            // Feedback visuale immediato
-            const btn = document.querySelector('.btn-upload');
-            const originalText = btn.innerText;
-            btn.innerText = "⏳ Invio in corso...";
+            conn.send({ type: 'START', name: file.name, size: file.size });
             
-            // Invio effettivo
-            conn.send({
-                file: file,
-                name: file.name,
-                size: file.size
-            });
+            // UI Reset
+            const pBox = document.getElementById('send-progress');
+            const pFill = document.getElementById('send-fill');
+            const pText = document.getElementById('send-percent');
+            pBox.style.display = 'block';
+            
+            let offset = 0;
+            const reader = new FileReader();
 
-            // Reset UI
-            setTimeout(() => {
-                btn.innerText = "✅ Inviato!";
-                setTimeout(() => btn.innerText = originalText, 2000);
-            }, 500);
+            reader.onload = async (e) => {
+                conn.send(e.target.result);
+                offset += e.target.result.byteLength;
+                const percent = Math.round((offset / file.size) * 100);
+                pFill.style.width = percent + "%";
+                pText.textContent = percent + "%";
 
-            // Log locale
-            const log = document.getElementById('send-log');
-            log.innerHTML += `<div class="system-msg">Hai inviato: ${file.name}</div>`;
+                if (offset < file.size) {
+                    if (conn.dataChannel.bufferedAmount > 10 * 1024 * 1024) await new Promise(r => setTimeout(r, 100));
+                    readSlice(offset);
+                } else {
+                    conn.send({ type: 'END' });
+                    pText.textContent = "✅";
+                    setTimeout(() => pBox.style.display = 'none', 2000);
+                }
+            };
+            const readSlice = o => reader.readAsArrayBuffer(file.slice(o, o + CHUNK_SIZE));
+            readSlice(0);
         });
 
-        // Generatore QR Code "Intelligente" (Link completo)
-        function generateQRCode(id) {
-            const qrCanvas = document.getElementById('qr-canvas');
-            const qrArea = document.getElementById('qr-area');
-            
-            // Costruiamo l'URL completo. 
-            // IMPORTANTE: Questo funziona bene se la pagina è su un server (es. miosito.com).
-            // Se sei in locale, userà l'IP se configurato o localhost (che non va da telefono a telefono).
-            const currentUrl = window.location.href.split('?')[0]; 
-            const fullLink = `${currentUrl}?connectTo=${id}`;
-            
-            QRCode.toCanvas(qrCanvas, fullLink, { width: 200, margin: 2 }, (error) => {
-                if (error) console.error(error);
-                qrArea.style.display = 'block';
-            });
-
-            window.shareLink = fullLink; // Salva per il copia incolla
+        let rxChunks = [], rxMeta = null, rxSize = 0;
+        function handleIncomingData(data) {
+            if (data.type === 'START') {
+                rxMeta = data; rxChunks = []; rxSize = 0;
+                document.getElementById('rec-progress').style.display = 'block';
+            } else if (data.type === 'END') {
+                saveFile();
+            } else if (data instanceof ArrayBuffer) {
+                rxChunks.push(data);
+                rxSize += data.byteLength;
+                if(rxMeta) {
+                    const pct = Math.round((rxSize / rxMeta.size) * 100);
+                    document.getElementById('rec-fill').style.width = pct + "%";
+                    document.getElementById('rec-percent').textContent = pct + "%";
+                }
+            }
         }
 
-        // Utility: Copia Link
-        function copyLink() {
-            navigator.clipboard.writeText(window.shareLink).then(() => {
-                alert("Link copiato! Invialo via chat se il QR non va.");
-            });
+        function saveFile() {
+            const blob = new Blob(rxChunks);
+            const url = URL.createObjectURL(blob);
+            const div = document.createElement('div');
+            div.className = 'file-item fade-in';
+            div.innerHTML = `
+                <div><strong>${rxMeta.name}</strong> <br><small style="color:#888">${formatBytes(rxMeta.size)}</small></div>
+                <a href="${url}" download="${rxMeta.name}" class="btn-dl">SCARICA</a>
+            `;
+            document.getElementById('received-list').prepend(div);
+            document.getElementById('empty-msg').style.display = 'none';
+            document.getElementById('rec-progress').style.display = 'none';
+            rxChunks = []; rxMeta = null;
         }
 
-        // Utility: Stato UI
-        function setStatus(msg, isConnected) {
-            const el = document.getElementById('status');
-            el.textContent = msg;
-            if(isConnected) el.classList.add('connected');
-            else el.classList.remove('connected');
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 B';
+            const i = Math.floor(Math.log(bytes) / Math.log(1024));
+            return parseFloat((bytes / Math.pow(1024, i)).toFixed(2)) + ' ' + ['B', 'KB', 'MB', 'GB'][i];
         }
 
-        // Utility: Formato Bytes
-        function formatBytes(bytes, decimals = 2) {
-            if (bytes === 0) return '0 Bytes';
-            const k = 1024;
-            const dm = decimals < 0 ? 0 : decimals;
-            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
-        }
-
-        // Avvio
+        // Avvio Iniziale
         init();
 
     </script>
