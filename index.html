@@ -22,26 +22,41 @@
 
         /* HEADER */
         header { padding: 15px; background: rgba(15,23,42,0.95); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; z-index: 10; }
-        .brand { font-weight: 800; font-size: 1.2rem; }
-        .status { font-size: 1.5rem; cursor: help; }
+        .brand { font-weight: 800; font-size: 1.2rem; display: flex; align-items: center; gap: 8px; }
+        .tag-lan { font-size: 0.7rem; background: var(--accent); color: white; padding: 2px 6px; border-radius: 4px; font-weight: 600; }
+        .status { font-size: 1.5rem; }
 
         /* MAIN */
         .main-content { flex: 1; overflow-y: auto; padding: 20px; max-width: 600px; margin: 0 auto; width: 100%; }
 
         /* CARDS */
-        .card { background: var(--card); border-radius: 16px; padding: 20px; border: 1px solid var(--border); margin-bottom: 20px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        .card { background: var(--card); border-radius: 16px; padding: 20px; border: 1px solid var(--border); margin-bottom: 20px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2); }
         
         /* CONTROLS */
         .controls-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; font-size: 0.9rem; color: #94a3b8; }
-        select { background: var(--bg); color: white; border: 1px solid var(--border); padding: 5px; border-radius: 6px; }
+        select { background: var(--card); color: white; border: 1px solid var(--border); padding: 6px 10px; border-radius: 8px; outline: none; font-family: inherit; }
 
-        /* UPLOAD ZONE */
+        /* UPLOAD ZONE (FIXED) */
         .upload-zone {
-            border: 2px dashed var(--border); border-radius: 12px; padding: 30px 20px; text-align: center;
-            position: relative; transition: 0.2s; cursor: pointer; background: rgba(255,255,255,0.01);
+            display: flex; /* FIX: Ora è un contenitore flex */
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 2px dashed var(--border); 
+            border-radius: 16px; 
+            padding: 40px 20px; 
+            text-align: center;
+            position: relative; 
+            transition: 0.2s; 
+            cursor: pointer; 
+            background: rgba(255,255,255,0.02);
+            width: 100%; /* Occupa tutto lo spazio */
         }
         .upload-zone:active { background: rgba(59, 130, 246, 0.1); border-color: var(--accent); }
         .upload-zone input { position: absolute; top:0; left:0; width:100%; height:100%; opacity:0; z-index: 5; cursor: pointer; }
+
+        /* ICONS */
+        .folder-icon { font-size: 3rem; margin-bottom: 10px; filter: drop-shadow(0 4px 4px rgba(0,0,0,0.3)); }
 
         /* FILE LIST */
         .file-item {
@@ -65,51 +80,52 @@
 <body>
 
 <header>
-    <div class="brand">⚡ UltraShare <span style="font-size:0.7em; opacity:0.7; border:1px solid var(--border); padding:2px 5px; border-radius:4px; margin-left:5px">LAN</span></div>
-    <div id="status-icon" class="status" title="Stato Connessione">📡</div>
+    <div class="brand">
+        ⚡ UltraShare <span class="tag-lan">LAN</span>
+    </div>
+    <div id="status-icon" class="status" title="Stato">📡</div>
 </header>
 
 <div class="main-content">
 
-    <!-- CONFIGURAZIONE LAN -->
+    <!-- SETUP AREA -->
     <div id="panel-setup" class="card">
         <div id="host-mode">
             <div style="text-align:center;">
-                <canvas id="qr-canvas" style="display:none; margin: 0 auto; border: 5px solid white; border-radius: 6px;"></canvas>
+                <canvas id="qr-canvas" style="display:none; margin: 0 auto; border: 5px solid white; border-radius: 8px;"></canvas>
                 <div id="loading-txt" style="color:#94a3b8; margin: 20px 0;">Creazione Rete Locale...</div>
                 
                 <div id="link-box" class="hidden">
-                    <div style="margin-bottom:5px; color:#cbd5e1">Scansiona o condividi:</div>
+                    <div style="margin-bottom:5px; color:#cbd5e1; font-size:0.9rem">Scansiona o condividi link</div>
                     <span class="btn-link" onclick="copyLink()">Copia Link Diretto</span>
                 </div>
             </div>
         </div>
 
         <div id="guest-mode" class="hidden" style="text-align:center; padding:20px;">
-            <h3>🔗 Connessione in corso...</h3>
-            <p style="color:#94a3b8">Assicurati di essere sulla stessa WiFi.</p>
+            <h3>🔗 Connessione...</h3>
+            <p style="color:#94a3b8">Resta su questa pagina.</p>
         </div>
     </div>
 
-    <!-- AREA TRASFERIMENTO -->
+    <!-- TRANSFER AREA -->
     <div id="panel-transfer" class="hidden">
         
-        <!-- TUNING PERFORMANCE -->
         <div class="controls-row">
-            <span>🚀 Performance Tuning</span>
+            <span>🚀 Performance</span>
             <select id="chunk-selector">
-                <option value="16384">16 KB (Safe)</option>
-                <option value="65536">64 KB</option>
+                <option value="16384">16 KB (Stable)</option>
                 <option value="262144">256 KB</option>
                 <option value="524288" selected>512 KB (Default)</option>
-                <option value="1048576">1 MB (Fastest)</option>
+                <option value="1048576">1 MB (Fast)</option>
             </select>
         </div>
 
         <div class="card">
             <label class="upload-zone">
-                <div style="font-size:2.5rem; margin-bottom:10px">📂</div>
-                <div style="font-weight:600">Tocca per inviare file</div>
+                <div class="folder-icon">📂</div>
+                <div style="font-weight:600; font-size:1.1rem">Tocca per inviare</div>
+                <div style="font-size:0.8rem; color:#94a3b8; margin-top:5px">Supporta Multi-file</div>
                 <input type="file" id="fileInput" multiple>
             </label>
         </div>
@@ -119,34 +135,23 @@
 
 </div>
 
-<!-- TEMPLATE FILE -->
 <template id="tpl-file">
     <div class="file-item">
-        <div style="display:flex; justify-content:space-between">
-            <div style="font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:80%" class="t-name">File</div>
-            <div style="font-size:0.8rem; opacity:0.7" class="t-pct">0%</div>
+        <div style="display:flex; justify-content:space-between; align-items:center">
+            <div style="font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:75%" class="t-name">File</div>
+            <div style="font-size:0.8rem; font-family:monospace" class="t-pct">0%</div>
         </div>
-        <div style="font-size:0.75rem; color:#94a3b8; margin-top:2px" class="t-meta">In attesa...</div>
+        <div style="font-size:0.75rem; color:#94a3b8; margin-top:4px" class="t-meta">In attesa...</div>
         <div class="progress-track"><div class="progress-bar"></div></div>
     </div>
 </template>
 
 <script>
-    // --- CONFIGURAZIONE LAN ---
-    // Nessun server STUN/TURN = Il browser cercherà solo IP locali.
-    const PEER_CONFIG = {
-        iceServers: [], 
-        debug: 0
-    };
-
+    // Configurazione LAN Only
+    const PEER_CONFIG = { iceServers: [], debug: 0 };
     streamSaver.mitm = 'https://jimmywarting.github.io/StreamSaver.js/mitm.html?version=2.0.0';
 
-    // --- STATO ---
-    const state = {
-        peer: null,
-        conn: null,
-        chunkSize: 524288 // Default 512KB
-    };
+    const state = { peer: null, conn: null, chunkSize: 524288 };
 
     const els = {
         status: document.getElementById('status-icon'),
@@ -156,13 +161,10 @@
         chunkSel: document.getElementById('chunk-selector')
     };
 
-    // --- TUNING DINAMICO ---
-    els.chunkSel.addEventListener('change', (e) => {
-        state.chunkSize = parseInt(e.target.value);
-        console.log("Chunk Size modificato a:", state.chunkSize);
-    });
+    // Cambio Chunk Size al volo
+    els.chunkSel.addEventListener('change', (e) => state.chunkSize = parseInt(e.target.value));
 
-    // --- INIT ---
+    // INIT
     const urlParams = new URLSearchParams(window.location.search);
     const targetId = urlParams.get('connectTo');
 
@@ -174,19 +176,13 @@
         initPeer(null);
     }
 
-    async function initPeer(connectTo) {
-        // Genera ID breve
+    function initPeer(connectTo) {
         const myId = Math.random().toString(36).substr(2, 5).toUpperCase();
-        
-        try {
-            state.peer = new Peer(myId, { config: PEER_CONFIG });
-        } catch(e) { 
-            console.error("Peer Init Error:", e);
-        }
+        try { state.peer = new Peer(myId, { config: PEER_CONFIG }); } catch(e){}
 
         state.peer.on('open', (id) => {
             if (!connectTo) {
-                // HOST
+                // Host
                 const url = window.location.href.split('?')[0] + '?connectTo=' + id;
                 QRCode.toCanvas(els.qr, url, { width: 220, margin: 2, color: { dark: "#000", light: "#FFF" } }, () => {
                     els.qr.style.display = 'block';
@@ -196,176 +192,123 @@
                     linkBox.dataset.link = url;
                 });
             } else {
-                // GUEST: Connessione Reliable
-                const c = state.peer.connect(connectTo, { reliable: true, label: 'file-transfer' });
+                // Guest
+                const c = state.peer.connect(connectTo, { reliable: true });
                 setupConn(c);
             }
         });
 
-        state.peer.on('connection', (c) => setupConn(c));
-
-        // --- GESTIONE ERRORI MIGLIORATA ---
+        state.peer.on('connection', setupConn);
         state.peer.on('error', err => {
-            console.log("Peer Error:", err.type); // Log silenzioso
-            // Alert solo se fatal
-            if (['disconnected', 'network', 'webrtc'].includes(err.type)) {
-                // Tentativo di riconnessione automatico o avviso soft
-                els.status.innerText = "⚠️"; 
-                if(err.type === 'network') alert("Problema di rete. Controlla il WiFi.");
-            }
-        });
-
-        state.peer.on('disconnected', () => {
-             // GitHub pages spesso disconnette il socket Signaling se inattivo,
-             // ma la connessione P2P (dataChannel) rimane attiva!
-             // Quindi NON mostriamo errori all'utente se state.conn è attivo.
-             if(!state.conn || !state.conn.open) {
-                 state.peer.reconnect();
-             }
+            console.log("Peer:", err.type);
+            if(err.type === 'network' || err.type === 'disconnected') els.status.innerText = "⚠️";
         });
     }
 
     function setupConn(c) {
         state.conn = c;
-        
         c.on('open', () => {
             document.getElementById('panel-setup').classList.add('hidden');
             document.getElementById('panel-transfer').classList.remove('hidden');
             els.status.innerText = "🚀";
-            
-            // Wake Lock per evitare spegnimento schermo durante trasferimenti lunghi
-            if ('wakeLock' in navigator) navigator.wakeLock.request('screen').catch(()=>{});
+            if('wakeLock' in navigator) navigator.wakeLock.request('screen').catch(()=>{});
         });
-
-        c.on('data', d => handleData(d));
-        c.on('close', () => { els.status.innerText = "❌"; alert("Partner disconnesso"); });
-        c.on('error', e => console.warn("Conn Error:", e));
+        c.on('data', handleData);
+        c.on('close', () => { els.status.innerText = "❌"; alert("Disconnesso"); });
     }
 
-    // --- INVIO (Deep Drain + Dynamic Chunking) ---
+    // --- SENDER ---
     els.fileInput.addEventListener('change', async (e) => {
         const files = Array.from(e.target.files);
-        if(!state.conn || !state.conn.open) return alert("Aspetta la connessione!");
+        if(!state.conn || !state.conn.open) return alert("Non connesso!");
 
         for (const file of files) {
             const ui = createLogUI(file.name, 'sending');
             const fileId = Math.random().toString(36).substr(2);
-            const CHUNK = state.chunkSize; // Legge il valore corrente dal selettore
+            const CHUNK = state.chunkSize;
 
-            // Header
             state.conn.send({ type: 'HEAD', id: fileId, name: file.name, size: file.size });
 
             let offset = 0;
             const startTime = Date.now();
-            
-            // Buffer thresholds basati sul chunk size per ottimizzare
-            const BUFFER_MAX = 8 * 1024 * 1024; // 8MB Hard limit
-            const BUFFER_LOW = CHUNK * 2; // Ripartiamo quando c'è spazio per 2 chunk
+            const BUFFER_MAX = 8 * 1024 * 1024; 
+            const BUFFER_LOW = CHUNK * 2;
 
             try {
                 while (offset < file.size) {
-                    const buffered = state.conn.dataChannel.bufferedAmount;
-                    
-                    // Backpressure Control
-                    if (buffered > BUFFER_MAX) {
-                        ui.meta.innerText = "Saturazione Rete (Wait)...";
-                        // Aspetta finché il buffer non scende sotto la soglia bassa
+                    if (state.conn.dataChannel.bufferedAmount > BUFFER_MAX) {
+                        ui.meta.innerText = "Attesa rete...";
                         while (state.conn.dataChannel.bufferedAmount > BUFFER_LOW) {
-                            await new Promise(r => setTimeout(r, 10)); 
+                            await new Promise(r => setTimeout(r, 10));
                         }
                     }
 
-                    const chunkBlob = file.slice(offset, offset + CHUNK);
-                    const buffer = await chunkBlob.arrayBuffer();
-                    
-                    state.conn.send({ type: 'CHUNK', id: fileId, data: buffer });
-                    offset += buffer.byteLength;
+                    const chunk = await file.slice(offset, offset + CHUNK).arrayBuffer();
+                    state.conn.send({ type: 'CHUNK', id: fileId, data: chunk });
+                    offset += chunk.byteLength;
 
-                    // UI Update (Throttled)
-                    if (offset % (CHUNK * 4) === 0 || offset >= file.size) {
-                        updateLogUI(ui, offset, file.size, startTime);
-                    }
+                    if (offset % (CHUNK * 5) === 0 || offset >= file.size) updateLogUI(ui, offset, file.size, startTime);
                 }
-                
                 state.conn.send({ type: 'DONE', id: fileId });
-                finalizeUI(ui, "Inviato", true);
-
-            } catch (err) {
-                console.error(err);
-                finalizeUI(ui, "Errore", false);
-            }
+                finalizeUI(ui, "Completato", true);
+            } catch (err) { finalizeUI(ui, "Errore", false); }
         }
-        els.fileInput.value = ''; 
+        els.fileInput.value = '';
     });
 
-    // --- RICEZIONE ---
-    const streams = {}; 
-
+    // --- RECEIVER ---
+    const streams = {};
     function handleData(d) {
         if (d.type === 'HEAD') {
             const ui = createLogUI(d.name, 'receiving');
             try {
                 const ws = streamSaver.createWriteStream(d.name, { size: d.size });
                 streams[d.id] = { writer: ws.getWriter(), received: 0, size: d.size, start: Date.now(), ui };
-            } catch(e) { finalizeUI(ui, "Err FS", false); }
-        } 
-        else if (d.type === 'CHUNK') {
+            } catch(e) { finalizeUI(ui, "Err Write", false); }
+        } else if (d.type === 'CHUNK') {
             const s = streams[d.id];
             if(s) {
                 s.writer.write(new Uint8Array(d.data));
                 s.received += d.data.byteLength;
-                
-                // Aggiornamento UI meno frequente per non bloccare il thread
-                if (Math.random() > 0.8 || s.received === s.size) {
-                    updateLogUI(s.ui, s.received, s.size, s.start);
-                }
+                if (Math.random() > 0.8 || s.received === s.size) updateLogUI(s.ui, s.received, s.size, s.start);
             }
-        }
-        else if (d.type === 'DONE') {
+        } else if (d.type === 'DONE') {
             const s = streams[d.id];
-            if(s) {
-                s.writer.close();
-                finalizeUI(s.ui, "Salvato", true);
-                delete streams[d.id];
-            }
+            if(s) { s.writer.close(); finalizeUI(s.ui, "Salvato", true); delete streams[d.id]; }
         }
     }
 
-    // --- UI HELPERS ---
     function createLogUI(name, mode) {
         const tpl = document.getElementById('tpl-file').content.cloneNode(true);
         const el = tpl.querySelector('.file-item');
-        const meta = tpl.querySelector('.t-meta');
-        const pct = tpl.querySelector('.t-pct');
-        const bar = tpl.querySelector('.progress-bar');
-        
         el.classList.add(mode);
         tpl.querySelector('.t-name').innerText = name;
         els.fileList.prepend(el);
-        
-        return { el, meta, bar, pct };
+        return { 
+            el, 
+            meta: el.querySelector('.t-meta'), 
+            bar: el.querySelector('.progress-bar'), 
+            pct: el.querySelector('.t-pct') 
+        };
     }
 
     function updateLogUI(ui, curr, total, start) {
         const p = ((curr / total) * 100).toFixed(0);
         ui.bar.style.width = p + "%";
         ui.pct.innerText = p + "%";
-        
-        const sec = (Date.now() - start) / 1000;
-        // Calcolo velocità in MB/s
-        const speed = sec > 0 ? (curr/1024/1024 / sec).toFixed(1) : 0;
-        ui.meta.innerText = `${speed} MB/s`;
+        const mbps = (curr/1024/1024 / ((Date.now() - start) / 1000)).toFixed(1);
+        ui.meta.innerText = `${mbps} MB/s`;
     }
 
-    function finalizeUI(ui, msg, success) {
+    function finalizeUI(ui, msg, ok) {
         ui.meta.innerText = msg;
-        ui.pct.innerText = success ? "✓" : "!";
-        ui.bar.style.background = success ? "var(--success)" : "var(--danger)";
+        ui.pct.innerText = ok ? "✓" : "!";
+        ui.bar.style.background = ok ? "var(--success)" : "var(--danger)";
     }
 
     function copyLink() {
         const link = document.getElementById('link-box').dataset.link;
-        if(link) navigator.clipboard.writeText(link).then(() => alert("Link copiato!"));
+        if(link) navigator.clipboard.writeText(link).then(() => alert("Copiato!"));
     }
 </script>
 </body>
