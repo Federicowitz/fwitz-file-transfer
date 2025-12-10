@@ -3,454 +3,252 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Federicowitz UltraShare</title>
+    <title>UltraShare Stable</title>
     
-    <!-- LIBRERIE ESTERNE -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/streamsaver@2.0.6/StreamSaver.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/web-streams-polyfill@2.0.2/dist/polyfill.min.js"></script>
     
-    <!-- FONT & ICONE -->
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     
     <style>
         :root {
-            --bg-color: #0f172a;
-            --card-bg: #1e293b;
-            --accent: #6366f1; /* Indigo */
-            --accent-hover: #4f46e5;
-            --text-main: #f1f5f9;
-            --text-dim: #94a3b8;
-            --success: #10b981;
-            --danger: #ef4444;
-            --warning: #f59e0b;
-            --border: #334155;
-            --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+            --bg: #0f172a; --card: #1e293b; --accent: #3b82f6; --text: #f8fafc;
+            --success: #10b981; --danger: #ef4444; --border: #334155;
         }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
-        * { box-sizing: border-box; outline: none; -webkit-tap-highlight-color: transparent; }
+        /* HEADER */
+        header { padding: 15px; background: rgba(15,23,42,0.9); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; z-index: 10; }
+        .brand { font-weight: 800; font-size: 1.2rem; display: flex; gap: 10px; align-items: center; }
+        .status { font-size: 1.5rem; }
 
-        body {
-            margin: 0; padding: 0;
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            font-family: 'Inter', sans-serif;
-            min-height: 100vh;
-            display: flex; flex-direction: column;
-            overflow-x: hidden;
-        }
+        /* MAIN SCROLLABLE AREA */
+        .main-content { flex: 1; overflow-y: auto; padding: 20px; max-width: 800px; margin: 0 auto; width: 100%; }
 
-        /* --- HEADER & ROCKET --- */
-        header {
-            padding: 20px;
-            display: flex; justify-content: space-between; align-items: center;
-            border-bottom: 1px solid var(--border);
-            background: rgba(15, 23, 42, 0.95);
-            backdrop-filter: blur(10px);
-            position: sticky; top: 0; z-index: 100;
-        }
-
-        .brand { font-weight: 800; font-size: 1.2rem; display: flex; align-items: center; gap: 10px; }
-        .brand span { color: var(--accent); }
+        /* CARDS */
+        .card { background: var(--card); border-radius: 16px; padding: 20px; border: 1px solid var(--border); margin-bottom: 20px; }
         
-        .rocket-status {
-            font-size: 1.5rem; transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            cursor: help;
-        }
-        .rocket-flying { animation: fly 1s infinite alternate; transform: rotate(45deg); }
-        .rocket-crashed { filter: grayscale(1); transform: rotate(180deg); }
-
-        @keyframes fly { from { transform: translateY(0) rotate(45deg); } to { transform: translateY(-5px) rotate(45deg); } }
-
-        .github-link {
-            font-family: 'JetBrains Mono', monospace; font-size: 0.8rem;
-            color: var(--text-dim); text-decoration: none;
-            border: 1px solid var(--border); padding: 5px 10px; border-radius: 6px;
-            transition: all 0.2s;
-        }
-        .github-link:hover { color: var(--accent); border-color: var(--accent); background: rgba(99, 102, 241, 0.1); }
-
-        /* --- CONTAINER --- */
-        .container {
-            max-width: 800px; margin: 0 auto; width: 100%; padding: 20px;
-            flex: 1; display: flex; flex-direction: column; gap: 20px;
-        }
-
-        /* --- CARDS GENERICH --- */
-        .card {
-            background: var(--card-bg); border-radius: 16px; padding: 25px;
-            border: 1px solid var(--border); box-shadow: var(--shadow);
-            transition: transform 0.2s, border-color 0.2s;
-        }
-        
-        /* --- CONNECTION PANEL --- */
-        #connection-panel { text-align: center; }
-        
-        .switch-wrapper {
-            display: flex; justify-content: space-between; align-items: center;
-            background: rgba(0,0,0,0.2); padding: 15px; border-radius: 10px; margin-bottom: 20px;
-        }
-        .switch-label { text-align: left; }
-        .switch-label h4 { margin: 0; font-size: 0.95rem; }
-        .switch-label p { margin: 2px 0 0; font-size: 0.75rem; color: var(--text-dim); }
-
-        /* TOGGLE SWITCH CSS */
-        .toggle-switch { position: relative; width: 50px; height: 26px; }
-        .toggle-switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #475569; transition: .4s; border-radius: 34px; }
-        .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
-        input:checked + .slider { background-color: var(--accent); }
-        input:checked + .slider:before { transform: translateX(24px); }
-
-        /* QR CODE */
-        #qr-wrapper { margin: 20px auto; width: fit-content; padding: 10px; background: white; border-radius: 12px; }
-        #qr-canvas { display: block; }
-        .share-link { color: var(--accent); cursor: pointer; font-size: 0.9rem; text-decoration: underline; margin-top: 10px; display: inline-block; }
-
-        /* --- DASHBOARD (TRANSFER) --- */
-        #dashboard { display: none; height: 100%; }
-        
+        /* UPLOAD ZONE */
         .upload-zone {
-            border: 2px dashed var(--border); border-radius: 16px;
-            padding: 40px 20px; text-align: center; cursor: pointer;
-            transition: all 0.2s; background: rgba(99, 102, 241, 0.05);
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            min-height: 200px;
+            border: 2px dashed var(--border); border-radius: 12px; padding: 40px 20px; text-align: center;
+            position: relative; transition: 0.3s; cursor: pointer; background: rgba(255,255,255,0.02);
         }
-        .upload-zone:hover, .upload-zone.dragover { border-color: var(--accent); background: rgba(99, 102, 241, 0.15); transform: scale(1.01); }
-        .upload-icon { font-size: 3rem; margin-bottom: 15px; display: block; }
-        .upload-text { font-weight: 600; font-size: 1.1rem; }
-        .upload-sub { color: var(--text-dim); font-size: 0.85rem; margin-top: 5px; }
+        .upload-zone:active { background: rgba(59, 130, 246, 0.1); border-color: var(--accent); }
+        .upload-zone input { position: absolute; top:0; left:0; width:100%; height:100%; opacity:0; z-index: 5; cursor: pointer; }
 
-        /* --- FILE LOG / HISTORY --- */
-        .history-section { margin-top: 30px; }
-        .history-title { font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim); margin-bottom: 15px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
-        
-        .file-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
-        
-        .file-card {
-            background: rgba(255,255,255,0.03); border-radius: 10px; padding: 15px;
-            display: grid; grid-template-columns: 40px 1fr auto; align-items: center; gap: 15px;
-            border-left: 4px solid var(--border);
-            animation: slideIn 0.3s ease-out;
+        /* FILE LIST */
+        .file-item {
+            background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; margin-bottom: 10px;
+            border-left: 4px solid var(--border); animation: slideIn 0.3s;
         }
-        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-        .file-card.type-send { border-left-color: var(--accent); }
-        .file-card.type-receive { border-left-color: var(--success); }
-        .file-card.type-error { border-left-color: var(--danger); }
-
-        .f-icon { font-size: 1.5rem; }
-        .f-details { overflow: hidden; }
-        .f-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
-        .f-meta { font-size: 0.75rem; color: var(--text-dim); display: flex; gap: 10px; margin-top: 4px; }
+        .file-item.sending { border-left-color: var(--accent); }
+        .file-item.receiving { border-left-color: var(--success); }
         
-        /* PROGRESS BAR IN FILE CARD */
-        .f-progress-track { width: 100%; height: 4px; background: #334155; border-radius: 2px; margin-top: 8px; overflow: hidden; display: none; }
-        .f-progress-fill { height: 100%; width: 0%; transition: width 0.2s linear; }
-        .type-send .f-progress-fill { background: var(--accent); }
-        .type-receive .f-progress-fill { background: var(--success); }
+        .progress-track { height: 6px; background: #334155; margin-top: 10px; border-radius: 3px; overflow: hidden; }
+        .progress-bar { height: 100%; width: 0%; transition: width 0.2s linear; }
+        .sending .progress-bar { background: var(--accent); }
+        .receiving .progress-bar { background: var(--success); }
 
-        .f-actions { display: flex; gap: 10px; }
-        .btn-mini {
-            background: none; border: none; cursor: pointer; font-size: 1.1rem;
-            opacity: 0.6; transition: 0.2s; padding: 5px; border-radius: 4px;
-        }
-        .btn-mini:hover { opacity: 1; background: rgba(255,255,255,0.1); }
-        .btn-trash:hover { color: var(--danger); }
+        .btn-trash { float: right; background: none; border: none; font-size: 1.2rem; cursor: pointer; opacity: 0.5; }
 
-        /* --- NOTIFICATIONS / TOAST --- */
-        #toast-container { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 1000; display: flex; flex-direction: column; gap: 10px; width: 90%; max-width: 400px; }
-        .toast {
-            background: #334155; color: white; padding: 12px 20px; border-radius: 8px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3); font-size: 0.9rem; text-align: center;
-            animation: fadeInOut 4s forwards; display: flex; align-items: center; justify-content: center; gap: 10px;
-        }
-        .toast.error { background: var(--danger); }
-        .toast.success { background: var(--success); }
-        .toast.lost { background: var(--warning); color: #000; font-weight: bold; }
-        
-        @keyframes fadeInOut { 0% { opacity: 0; transform: translateY(20px); } 10% { opacity: 1; transform: translateY(0); } 90% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-20px); } }
-
-        /* --- UTILITY CLASSES --- */
+        /* UTILS */
         .hidden { display: none !important; }
-        .badge { font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; background: #334155; color: #fff; text-transform: uppercase; }
+        .switch-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        
+        /* TOGGLE */
+        .switch { position: relative; width: 50px; height: 28px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #475569; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--accent); }
+        input:checked + .slider:before { transform: translateX(22px); }
 
-        /* MOBILE OPTIMIZATIONS */
-        @media (max-width: 600px) {
-            .container { padding: 10px; }
-            .card { padding: 15px; }
-        }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
 
-    <!-- HEADER -->
-    <header>
-        <div class="brand">
-            <span>⚡</span> UltraShare
-        </div>
-        <div id="rocket-icon" class="rocket-status" title="Stato Connessione">🚀</div>
-        <a href="https://github.com/federicowitz" target="_blank" class="github-link">github.com/federicowitz</a>
-    </header>
+<header>
+    <div class="brand">
+        <span>⚡ UltraShare</span>
+    </div>
+    <div id="status-icon" class="status">📡</div>
+</header>
 
-    <!-- MAIN CONTAINER -->
-    <div class="container">
+<div class="main-content">
 
-        <!-- PANEL 1: SETUP & CONNECTION (HOST/GUEST) -->
-        <div id="connection-panel" class="card">
-            
-            <!-- Switch Mode (Only visible for Host initially) -->
-            <div id="settings-area">
-                <div class="switch-wrapper">
-                    <div class="switch-label">
-                        <h4>🛡️ Modalità Bunker (LAN)</h4>
-                        <p>Solo WiFi locale. Massima Privacy. Disattiva se non connette.</p>
-                    </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="modeSwitch">
-                        <span class="slider"></span>
-                    </label>
+    <!-- SETUP PANEL -->
+    <div id="panel-setup" class="card">
+        <div id="host-mode">
+            <div class="switch-row">
+                <div>
+                    <strong>Modalità Bunker</strong>
+                    <div style="font-size:0.8rem; color:#94a3b8">Solo WiFi Locale (Più privacy)</div>
                 </div>
-
-                <div id="qr-wrapper" class="hidden">
-                    <canvas id="qr-canvas"></canvas>
-                </div>
-                
-                <div id="loading-text" style="margin: 20px 0; color: var(--text-dim);">
-                    <div class="spinner"></div> Inizializzazione Rete P2P...
-                </div>
-
-                <div id="share-link-container" class="hidden">
-                    <span id="link-text" class="share-link" onclick="copyLink()">Copia Link di Connessione</span>
-                </div>
-            </div>
-
-            <!-- Guest Specific Message -->
-            <div id="guest-message" class="hidden">
-                <h2 style="margin-bottom: 5px;">🔗 Connessione...</h2>
-                <p style="color: var(--text-dim);">Resta in questa pagina.</p>
-            </div>
-        </div>
-
-        <!-- PANEL 2: DASHBOARD (TRANSFER) -->
-        <div id="dashboard">
-            
-            <!-- UPLOAD AREA -->
-            <div class="card">
-                <label class="upload-zone" id="drop-zone">
-                    <span class="upload-icon">📂</span>
-                    <span class="upload-text">Tocca o Trascina qui i file</span>
-                    <span class="upload-sub">Supporta file illimitati • Scrittura diretta su Disco</span>
-                    <input type="file" id="fileInput" multiple>
+                <label class="switch">
+                    <input type="checkbox" id="modeSwitch">
+                    <span class="slider"></span>
                 </label>
             </div>
-
-            <!-- HISTORY LOG -->
-            <div class="history-section">
-                <div class="history-title">Cronologia Trasferimenti</div>
-                <div id="file-log" class="file-list">
-                    <!-- Javascript will populate this -->
-                </div>
-                <div id="empty-history" style="text-align: center; padding: 30px; color: var(--border);">
-                    Nessun file trasferito... ancora.
+            
+            <div style="text-align:center; margin-top:20px;">
+                <canvas id="qr-canvas" style="display:none; margin: 0 auto; border: 6px solid white; border-radius: 8px;"></canvas>
+                <div id="loading-txt" style="color:#94a3b8">Inizializzazione...</div>
+                <div id="link-box" class="hidden" style="margin-top:15px; color:var(--accent); text-decoration:underline; cursor:pointer;" onclick="copyLink()">
+                    Copia Link Connessione
                 </div>
             </div>
-
         </div>
 
+        <div id="guest-mode" class="hidden" style="text-align:center; padding:20px;">
+            <h3>🔗 Connessione...</h3>
+            <p style="color:#94a3b8">Non chiudere questa pagina.</p>
+        </div>
     </div>
 
-    <!-- TOAST NOTIFICATIONS -->
-    <div id="toast-container"></div>
-
-    <!-- TEMPLATES FOR JS -->
-    <template id="file-card-template">
-        <div class="file-card">
-            <div class="f-icon">📄</div>
-            <div class="f-details">
-                <span class="f-name">Filename.ext</span>
-                <div class="f-meta">
-                    <span class="f-size">0 MB</span> • <span class="f-status">Attesa</span>
-                </div>
-                <div class="f-progress-track"><div class="f-progress-fill"></div></div>
-            </div>
-            <div class="f-actions">
-                <button class="btn-mini btn-trash" title="Rimuovi dalla lista (Il file su disco rimane)">🗑️</button>
-            </div>
+    <!-- TRANSFER PANEL -->
+    <div id="panel-transfer" class="hidden">
+        <div class="card">
+            <label class="upload-zone">
+                <div style="font-size:3rem; margin-bottom:10px">📂</div>
+                <div style="font-size:1.1rem; font-weight:600">Tocca per inviare</div>
+                <div style="font-size:0.9rem; color:#94a3b8; margin-top:5px">Scrittura Diretta su Disco</div>
+                <input type="file" id="fileInput" multiple>
+            </label>
         </div>
-    </template>
 
-    <!-- JAVASCRIPT LOGIC -->
-    <script>
-        /**
-         * CONFIGURAZIONE SISTEMA
-         */
-        const CONFIG = {
-            chunkSize: 1024 * 1024, // 1MB per chunk (Equilibrio perfetto CPU/Rete)
-            maxBuffer: 16 * 1024 * 1024, // 16MB Buffer Cap per Backpressure
-            streamSaverMitm: 'https://jimmywarting.github.io/StreamSaver.js/mitm.html?version=2.0.0'
+        <div id="file-list"></div>
+    </div>
+
+</div>
+
+<!-- TEMPLATES -->
+<template id="tpl-file">
+    <div class="file-item">
+        <button class="btn-trash">🗑️</button>
+        <div style="font-weight:600; margin-bottom:5px" class="t-name">File.ext</div>
+        <div style="font-size:0.8rem; color:#94a3b8" class="t-meta">Attesa...</div>
+        <div class="progress-track"><div class="progress-bar"></div></div>
+    </div>
+</template>
+
+<script>
+    // --- SETTINGS ---
+    const CHUNK_SIZE = 512 * 1024; // 512KB (Ridotto per stabilità su Android)
+    const BUFFER_LIMIT = 8 * 1024 * 1024; // 8MB Max Buffer
+    const BUFFER_DRAIN = 1 * 1024 * 1024; // 1MB Drain Target (Aspetta che si svuoti fino a qui)
+    
+    streamSaver.mitm = 'https://jimmywarting.github.io/StreamSaver.js/mitm.html?version=2.0.0';
+
+    // --- STATE ---
+    const state = {
+        peer: null, conn: null, myId: null,
+        isLan: localStorage.getItem('lanMode') !== 'false',
+        wakeLock: null
+    };
+
+    const els = {
+        status: document.getElementById('status-icon'),
+        modeSwitch: document.getElementById('modeSwitch'),
+        qr: document.getElementById('qr-canvas'),
+        fileInput: document.getElementById('fileInput'),
+        fileList: document.getElementById('file-list')
+    };
+
+    // --- WAKE LOCK ---
+    async function requestWakeLock() {
+        if ('wakeLock' in navigator) {
+            try { state.wakeLock = await navigator.wakeLock.request('screen'); } catch {}
+        }
+    }
+
+    // --- INIT ---
+    const urlParams = new URLSearchParams(window.location.search);
+    const targetId = urlParams.get('connectTo');
+
+    els.modeSwitch.checked = state.isLan;
+    els.modeSwitch.addEventListener('change', (e) => {
+        localStorage.setItem('lanMode', e.target.checked);
+        location.reload();
+    });
+
+    if (targetId) {
+        document.getElementById('host-mode').classList.add('hidden');
+        document.getElementById('guest-mode').classList.remove('hidden');
+        initPeer(targetId);
+    } else {
+        initPeer(null);
+    }
+
+    function initPeer(connectTo) {
+        const config = { 
+            iceServers: state.isLan ? [] : [{ urls: 'stun:stun.l.google.com:19302' }],
+            debug: 0 
         };
+        
+        try {
+            state.peer = new Peer(Math.random().toString(36).substr(2, 5).toUpperCase(), { config });
+        } catch(e) { console.error(e); }
 
-        // StreamSaver Setup
-        streamSaver.mitm = CONFIG.streamSaverMitm;
-
-        // Stato Globale
-        const state = {
-            peer: null,
-            conn: null,
-            myId: null,
-            isLanMode: localStorage.getItem('lanMode') !== 'false', // Default true
-            isHost: true,
-            files: {} // Mappa ID -> FileData per tracking multiplo
-        };
-
-        // Elementi DOM
-        const els = {
-            modeSwitch: document.getElementById('modeSwitch'),
-            qrCanvas: document.getElementById('qr-canvas'),
-            qrWrapper: document.getElementById('qr-wrapper'),
-            loadingText: document.getElementById('loading-text'),
-            linkContainer: document.getElementById('share-link-container'),
-            linkText: document.getElementById('link-text'),
-            connPanel: document.getElementById('connection-panel'),
-            dashboard: document.getElementById('dashboard'),
-            fileInput: document.getElementById('fileInput'),
-            dropZone: document.getElementById('drop-zone'),
-            fileLog: document.getElementById('file-log'),
-            emptyHistory: document.getElementById('empty-history'),
-            rocket: document.getElementById('rocket-icon'),
-            guestMsg: document.getElementById('guest-message'),
-            settingsArea: document.getElementById('settings-area')
-        };
-
-        // --- INIZIALIZZAZIONE ---
-
-        function init() {
-            // Controlla se siamo Host o Guest
-            const urlParams = new URLSearchParams(window.location.search);
-            const targetId = urlParams.get('connectTo');
-
-            // Imposta Switch UI
-            els.modeSwitch.checked = state.isLanMode;
-
-            if (targetId) {
-                // GUEST MODE
-                state.isHost = false;
-                els.settingsArea.classList.add('hidden');
-                els.guestMsg.classList.remove('hidden');
-                initPeer(targetId);
+        state.peer.on('open', (id) => {
+            if (!connectTo) {
+                // Host Logic
+                const url = window.location.href.split('?')[0] + '?connectTo=' + id;
+                QRCode.toCanvas(els.qr, url, { width: 200, margin: 1 }, () => {
+                    els.qr.style.display = 'block';
+                    document.getElementById('loading-txt').style.display = 'none';
+                    const linkBox = document.getElementById('link-box');
+                    linkBox.classList.remove('hidden');
+                    linkBox.dataset.link = url;
+                });
             } else {
-                // HOST MODE
-                state.isHost = true;
-                initPeer(null);
+                // Guest Logic
+                const c = state.peer.connect(connectTo, { reliable: true });
+                setupConn(c);
             }
+        });
 
-            // Event Listeners
-            setupEventListeners();
-        }
-
-        function initPeer(targetId) {
-            state.myId = Math.random().toString(36).substr(2, 5).toUpperCase();
-            
-            const config = {
-                iceServers: state.isLanMode ? [] : [{ urls: 'stun:stun.l.google.com:19302' }],
-                debug: 0 // Silenzioso
-            };
-
-            try {
-                state.peer = new Peer(state.myId, { config });
-            } catch (e) {
-                showToast("Errore critico PeerJS", "error");
-                return;
+        state.peer.on('connection', (c) => setupConn(c));
+        
+        // GESTIONE ERRORI INTELLIGENTE
+        state.peer.on('error', err => {
+            console.warn("Peer Warning:", err);
+            // Mostra crash SOLO se è un errore fatale
+            if (err.type === 'peer-unavailable' || err.type === 'disconnected' || err.type === 'network') {
+                els.status.innerText = "💥";
+                alert("Errore critico connessione: " + err.type);
             }
+        });
+    }
 
-            state.peer.on('open', (id) => {
-                state.myId = id;
-                if (state.isHost) {
-                    generateQR(id);
-                } else {
-                    connectToHost(targetId);
-                }
-            });
+    function setupConn(c) {
+        state.conn = c;
+        
+        c.on('open', () => {
+            document.getElementById('panel-setup').classList.add('hidden');
+            document.getElementById('panel-transfer').classList.remove('hidden');
+            els.status.innerText = "🚀";
+            requestWakeLock();
+        });
 
-            state.peer.on('connection', (c) => handleConnection(c));
-            
-            // Gestione errori "silenziosa"
-            state.peer.on('error', (err) => {
-                console.warn("Peer Error:", err);
-                if (err.type === 'peer-unavailable') {
-                    showToast("Host non trovato. Riprova.", "error");
-                    els.rocket.classList.add('rocket-crashed');
-                } else if (err.type === 'network' || err.type === 'disconnected') {
-                    handleDisconnect();
-                }
-            });
+        c.on('data', d => handleData(d));
+        c.on('close', () => els.status.innerText = "💥");
+        // Non settiamo l'icona crash su 'error' generico della connessione
+        c.on('error', e => console.error("Conn Error (Ignorato se non critico):", e));
+    }
 
-            state.peer.on('disconnected', handleDisconnect);
-        }
+    // --- SENDER CORE (DEEP DRAIN LOGIC) ---
+    els.fileInput.addEventListener('change', async (e) => {
+        const files = Array.from(e.target.files);
+        if(!state.conn || !state.conn.open) return alert("Non connesso!");
 
-        function connectToHost(id) {
-            const conn = state.peer.connect(id, { reliable: true });
-            conn.on('open', () => handleConnection(conn));
-            
-            // Timeout di sicurezza
-            setTimeout(() => {
-                if (!state.conn || !state.conn.open) {
-                    // Non mostrare alert, ma cambia stato UI
-                    els.rocket.innerText = "⏳"; 
-                }
-            }, 5000);
-        }
+        for (const file of files) {
+            const ui = createLogUI(file.name, 'sending');
+            const fileId = Math.random().toString(36).substr(2);
 
-        function handleConnection(conn) {
-            state.conn = conn;
-            
-            // Update UI
-            els.connPanel.classList.add('hidden');
-            els.dashboard.style.display = 'block';
-            els.rocket.classList.add('rocket-flying');
-            els.rocket.innerText = "🚀"; // Ripristina razzo
-            
-            if(state.isHost) showToast("Guest Connesso!", "success");
-            else showToast("Connesso all'Host!", "success");
-
-            // Setup Data Handlers
-            conn.on('data', (data) => processData(data));
-            conn.on('close', handleDisconnect);
-            conn.on('error', (e) => console.error(e));
-        }
-
-        function handleDisconnect() {
-            els.rocket.classList.remove('rocket-flying');
-            els.rocket.classList.add('rocket-crashed');
-            els.rocket.innerText = "💥";
-            
-            // Mostra overlay o toast persistente
-            showToast("Ops... Connection Lost!", "lost");
-            
-            // Opzionale: Prova a riconnettere o ricaricare dopo tot secondi
-            setTimeout(() => {
-                // alert("Connessione persa. Ricarica la pagina.");
-                // location.reload();
-            }, 3000);
-        }
-
-        // --- LOGICA TRASFERIMENTO (CORE) ---
-
-        // 1. INVIO (SENDER)
-        async function sendFile(file) {
-            if (!state.conn) return;
-
-            const fileId = Math.random().toString(36).substr(2, 9);
-            const ui = createLogEntry(fileId, file.name, file.size, 'send');
-            
-            // Update UI Init
-            ui.status.innerText = "Preparazione...";
-            ui.barTrack.style.display = 'block';
-
-            // Send Header
             state.conn.send({ type: 'HEAD', id: fileId, name: file.name, size: file.size });
 
             let offset = 0;
@@ -458,229 +256,109 @@
 
             try {
                 while (offset < file.size) {
-                    // Backpressure Check
-                    if (state.conn.dataChannel.bufferedAmount > CONFIG.maxBuffer) {
-                        await new Promise(r => setTimeout(r, 10));
-                        continue;
+                    const buffered = state.conn.dataChannel.bufferedAmount;
+                    
+                    // --- LOGICA CHIAVE: DEEP DRAIN ---
+                    // Se il buffer è pieno, aspettiamo che si SVUOTI quasi del tutto
+                    if (buffered > BUFFER_LIMIT) {
+                        ui.meta.innerText = "Pausa Buffer (Network saturo)...";
+                        while (state.conn.dataChannel.bufferedAmount > BUFFER_DRAIN) {
+                            await new Promise(r => setTimeout(r, 50)); // Attesa attiva
+                        }
                     }
 
-                    const chunk = file.slice(offset, offset + CONFIG.chunkSize);
+                    // Lettura Chunk
+                    const chunk = file.slice(offset, offset + CHUNK_SIZE);
                     const buffer = await chunk.arrayBuffer();
                     
-                    // Send Data Wrapper
                     state.conn.send({ type: 'CHUNK', id: fileId, data: buffer });
                     offset += buffer.byteLength;
 
-                    // UI Update (Throttle)
-                    if (offset % (CONFIG.chunkSize * 10) === 0 || offset >= file.size) {
-                        updateProgress(ui, offset, file.size, startTime);
+                    // Update UI ogni tanto
+                    if (offset % (CHUNK_SIZE * 5) === 0 || offset >= file.size) {
+                        updateLogUI(ui, offset, file.size, startTime);
                     }
                 }
-
+                
                 state.conn.send({ type: 'DONE', id: fileId });
-                finalizeLogEntry(ui, "Inviato", "success");
+                finalizeUI(ui, "Inviato", true);
 
             } catch (err) {
                 console.error(err);
-                finalizeLogEntry(ui, "Errore", "error");
-                showToast("Errore invio file", "error");
+                finalizeUI(ui, "Errore Invio", false);
             }
         }
+        els.fileInput.value = ''; 
+    });
 
-        // 2. RICEZIONE (RECEIVER)
-        const incomingStreams = {}; // Mappa ID -> { writer, received, size, startTime, ui }
+    // --- RECEIVER CORE ---
+    const streams = {}; 
 
-        function processData(payload) {
-            // payload = { type, id, ... }
-            const { type, id } = payload;
-
-            if (type === 'HEAD') {
-                // Inizia nuovo download
-                const ui = createLogEntry(id, payload.name, payload.size, 'receive');
-                ui.status.innerText = "Scrittura su disco...";
-                ui.barTrack.style.display = 'block';
+    function handleData(d) {
+        if (d.type === 'HEAD') {
+            const ui = createLogUI(d.name, 'receiving');
+            try {
+                const ws = streamSaver.createWriteStream(d.name, { size: d.size });
+                streams[d.id] = { writer: ws.getWriter(), received: 0, size: d.size, start: Date.now(), ui };
+            } catch(e) { finalizeUI(ui, "Err StreamSaver", false); }
+        } 
+        else if (d.type === 'CHUNK') {
+            const s = streams[d.id];
+            if(s) {
+                s.writer.write(new Uint8Array(d.data));
+                s.received += d.data.byteLength;
                 
-                let writer = null;
-                try {
-                    const fileStream = streamSaver.createWriteStream(payload.name, { size: payload.size });
-                    writer = fileStream.getWriter();
-                } catch (e) {
-                    finalizeLogEntry(ui, "Err StreamSaver", "error");
-                    return;
-                }
-
-                incomingStreams[id] = {
-                    writer: writer,
-                    received: 0,
-                    size: payload.size,
-                    startTime: Date.now(),
-                    ui: ui
-                };
-
-            } else if (type === 'CHUNK') {
-                // Scrittura Chunk
-                const streamObj = incomingStreams[id];
-                if (!streamObj || !streamObj.writer) return;
-
-                streamObj.writer.write(new Uint8Array(payload.data));
-                streamObj.received += payload.data.byteLength;
-
-                // UI Update
-                if (streamObj.received % (CONFIG.chunkSize * 10) === 0) {
-                    updateProgress(streamObj.ui, streamObj.received, streamObj.size, streamObj.startTime);
-                }
-
-            } else if (type === 'DONE') {
-                // Chiusura
-                const streamObj = incomingStreams[id];
-                if (streamObj && streamObj.writer) {
-                    streamObj.writer.close();
-                    finalizeLogEntry(streamObj.ui, "Salvato su Disco", "success");
-                    delete incomingStreams[id];
+                // Aggiornamento UI throttled
+                if(s.received % (CHUNK_SIZE * 5) === 0 || s.received === s.size) {
+                    updateLogUI(s.ui, s.received, s.size, s.start);
                 }
             }
         }
-
-        // --- UI MANAGEMENT ---
-
-        function createLogEntry(id, name, size, type) {
-            els.emptyHistory.style.display = 'none';
-            const template = document.getElementById('file-card-template');
-            const clone = template.content.cloneNode(true);
-            
-            const card = clone.querySelector('.file-card');
-            card.classList.add(type === 'send' ? 'type-send' : 'type-receive');
-            card.dataset.id = id;
-
-            clone.querySelector('.f-name').innerText = name;
-            clone.querySelector('.f-size').innerText = formatBytes(size);
-            const statusEl = clone.querySelector('.f-status');
-            const fillEl = clone.querySelector('.f-progress-fill');
-            const trackEl = clone.querySelector('.f-progress-track');
-            const iconEl = clone.querySelector('.f-icon');
-            iconEl.innerText = type === 'send' ? '📤' : '📥';
-
-            // Trash Button Logic
-            const trashBtn = clone.querySelector('.btn-trash');
-            trashBtn.onclick = () => {
-                card.style.opacity = '0';
-                setTimeout(() => {
-                    card.remove();
-                    if(els.fileLog.children.length === 0) els.emptyHistory.style.display = 'block';
-                }, 300);
-            };
-
-            els.fileLog.prepend(clone);
-
-            return { card, status: statusEl, fill: fillEl, barTrack: trackEl };
-        }
-
-        function updateProgress(ui, current, total, startTime) {
-            const pct = ((current / total) * 100).toFixed(0) + "%";
-            ui.fill.style.width = pct;
-            
-            const elapsed = (Date.now() - startTime) / 1000;
-            let speedStr = "";
-            if (elapsed > 0) {
-                const speed = (current / 1024 / 1024) / elapsed; // MB/s
-                speedStr = ` • ${speed.toFixed(1)} MB/s`;
+        else if (d.type === 'DONE') {
+            const s = streams[d.id];
+            if(s) {
+                s.writer.close();
+                finalizeUI(s.ui, "Salvato su Disco", true);
+                delete streams[d.id];
             }
-            ui.status.innerText = `${pct}${speedStr}`;
         }
+    }
 
-        function finalizeLogEntry(ui, msg, stateClass) {
-            ui.status.innerText = msg;
-            ui.card.classList.add(stateClass === 'error' ? 'type-error' : 'finished');
-            if (stateClass === 'success') ui.fill.style.width = '100%';
-            
-            // Stop progress bar animation/color change if needed
-            ui.status.style.fontWeight = "bold";
-            ui.status.style.color = stateClass === 'error' ? 'var(--danger)' : 'var(--success)';
-        }
+    // --- UI HELPERS ---
+    function createLogUI(name, mode) {
+        const tpl = document.getElementById('tpl-file').content.cloneNode(true);
+        const el = tpl.querySelector('.file-item');
+        const meta = tpl.querySelector('.t-meta');
+        const bar = tpl.querySelector('.progress-bar');
+        const trash = tpl.querySelector('.btn-trash');
+        
+        el.classList.add(mode);
+        tpl.querySelector('.t-name').innerText = name;
+        
+        trash.onclick = () => el.remove();
+        els.fileList.prepend(el);
+        
+        return { el, meta, bar };
+    }
 
-        // --- EVENT LISTENERS ---
+    function updateLogUI(ui, curr, total, start) {
+        const pct = ((curr / total) * 100).toFixed(0);
+        ui.bar.style.width = pct + "%";
+        
+        const sec = (Date.now() - start) / 1000;
+        const speed = sec > 0 ? (curr/1024/1024 / sec).toFixed(1) : 0;
+        ui.meta.innerText = `${pct}% • ${speed} MB/s`;
+    }
 
-        function setupEventListeners() {
-            // File Input
-            els.fileInput.addEventListener('change', (e) => {
-                Array.from(e.target.files).forEach(file => sendFile(file));
-                els.fileInput.value = ''; // Reset per ri-inviare lo stesso file
-            });
+    function finalizeUI(ui, msg, success) {
+        ui.meta.innerText = msg;
+        ui.bar.style.background = success ? "var(--success)" : "var(--danger)";
+    }
 
-            // Drag & Drop
-            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                els.dropZone.addEventListener(eventName, preventDefaults, false);
-            });
-            
-            els.dropZone.addEventListener('dragenter', () => els.dropZone.classList.add('dragover'));
-            els.dropZone.addEventListener('dragleave', () => els.dropZone.classList.remove('dragover'));
-            
-            els.dropZone.addEventListener('drop', (e) => {
-                els.dropZone.classList.remove('dragover');
-                const files = e.dataTransfer.files;
-                Array.from(files).forEach(file => sendFile(file));
-            });
-
-            // Settings Switch
-            els.modeSwitch.addEventListener('change', (e) => {
-                localStorage.setItem('lanMode', e.target.checked);
-                location.reload();
-            });
-        }
-
-        function preventDefaults(e) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
-
-        // --- UTILS ---
-
-        function generateQR(id) {
-            const currentUrl = window.location.href.split('?')[0];
-            const link = `${currentUrl}?connectTo=${id}`;
-            
-            // Genera QR
-            QRCode.toCanvas(els.qrCanvas, link, { 
-                width: 200, margin: 2, 
-                color: { dark: "#0f172a", light: "#ffffff" } 
-            }, () => {
-                els.loadingText.style.display = 'none';
-                els.qrWrapper.classList.remove('hidden');
-                els.linkContainer.classList.remove('hidden');
-                els.linkText.dataset.link = link;
-            });
-        }
-
-        function copyLink() {
-            const link = els.linkText.dataset.link;
-            navigator.clipboard.writeText(link).then(() => showToast("Link Copiato!", "success"));
-        }
-
-        function formatBytes(bytes) {
-            if (bytes === 0) return '0 B';
-            const k = 1024;
-            const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-        }
-
-        function showToast(msg, type = 'info') {
-            const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-            toast.className = `toast ${type}`;
-            toast.innerHTML = type === 'lost' ? `📡 ${msg}` : msg;
-            
-            container.appendChild(toast);
-            
-            // Auto remove after animation
-            setTimeout(() => {
-                toast.remove();
-            }, 4000);
-        }
-
-        // START
-        init();
-
-    </script>
+    function copyLink() {
+        const link = document.getElementById('link-box').dataset.link;
+        if(link) navigator.clipboard.writeText(link).then(() => alert("Link copiato!"));
+    }
+</script>
 </body>
 </html>
