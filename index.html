@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>UltraShare Stable</title>
+    <title>UltraShare LAN</title>
     
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
@@ -21,101 +21,95 @@
         body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
         /* HEADER */
-        header { padding: 15px; background: rgba(15,23,42,0.9); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; z-index: 10; }
-        .brand { font-weight: 800; font-size: 1.2rem; display: flex; gap: 10px; align-items: center; }
-        .status { font-size: 1.5rem; }
+        header { padding: 15px; background: rgba(15,23,42,0.95); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; z-index: 10; }
+        .brand { font-weight: 800; font-size: 1.2rem; }
+        .status { font-size: 1.5rem; cursor: help; }
 
-        /* MAIN SCROLLABLE AREA */
-        .main-content { flex: 1; overflow-y: auto; padding: 20px; max-width: 800px; margin: 0 auto; width: 100%; }
+        /* MAIN */
+        .main-content { flex: 1; overflow-y: auto; padding: 20px; max-width: 600px; margin: 0 auto; width: 100%; }
 
         /* CARDS */
-        .card { background: var(--card); border-radius: 16px; padding: 20px; border: 1px solid var(--border); margin-bottom: 20px; }
+        .card { background: var(--card); border-radius: 16px; padding: 20px; border: 1px solid var(--border); margin-bottom: 20px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
         
+        /* CONTROLS */
+        .controls-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; font-size: 0.9rem; color: #94a3b8; }
+        select { background: var(--bg); color: white; border: 1px solid var(--border); padding: 5px; border-radius: 6px; }
+
         /* UPLOAD ZONE */
         .upload-zone {
-            border: 2px dashed var(--border); border-radius: 12px; padding: 40px 20px; text-align: center;
-            position: relative; transition: 0.3s; cursor: pointer; background: rgba(255,255,255,0.02);
+            border: 2px dashed var(--border); border-radius: 12px; padding: 30px 20px; text-align: center;
+            position: relative; transition: 0.2s; cursor: pointer; background: rgba(255,255,255,0.01);
         }
         .upload-zone:active { background: rgba(59, 130, 246, 0.1); border-color: var(--accent); }
         .upload-zone input { position: absolute; top:0; left:0; width:100%; height:100%; opacity:0; z-index: 5; cursor: pointer; }
 
         /* FILE LIST */
         .file-item {
-            background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; margin-bottom: 10px;
+            background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; margin-bottom: 8px;
             border-left: 4px solid var(--border); animation: slideIn 0.3s;
         }
         .file-item.sending { border-left-color: var(--accent); }
         .file-item.receiving { border-left-color: var(--success); }
         
-        .progress-track { height: 6px; background: #334155; margin-top: 10px; border-radius: 3px; overflow: hidden; }
-        .progress-bar { height: 100%; width: 0%; transition: width 0.2s linear; }
+        .progress-track { height: 4px; background: #334155; margin-top: 8px; border-radius: 2px; overflow: hidden; }
+        .progress-bar { height: 100%; width: 0%; transition: width 0.1s linear; }
         .sending .progress-bar { background: var(--accent); }
         .receiving .progress-bar { background: var(--success); }
 
-        .btn-trash { float: right; background: none; border: none; font-size: 1.2rem; cursor: pointer; opacity: 0.5; }
-
         /* UTILS */
         .hidden { display: none !important; }
-        .switch-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        
-        /* TOGGLE */
-        .switch { position: relative; width: 50px; height: 28px; }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #475569; transition: .4s; border-radius: 34px; }
-        .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
-        input:checked + .slider { background-color: var(--accent); }
-        input:checked + .slider:before { transform: translateX(22px); }
-
-        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .btn-link { color: var(--accent); text-decoration: underline; cursor: pointer; margin-top: 10px; display: inline-block; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
 
 <header>
-    <div class="brand">
-        <span>⚡ UltraShare</span>
-    </div>
-    <div id="status-icon" class="status">📡</div>
+    <div class="brand">⚡ UltraShare <span style="font-size:0.7em; opacity:0.7; border:1px solid var(--border); padding:2px 5px; border-radius:4px; margin-left:5px">LAN</span></div>
+    <div id="status-icon" class="status" title="Stato Connessione">📡</div>
 </header>
 
 <div class="main-content">
 
-    <!-- SETUP PANEL -->
+    <!-- CONFIGURAZIONE LAN -->
     <div id="panel-setup" class="card">
         <div id="host-mode">
-            <div class="switch-row">
-                <div>
-                    <strong>Modalità Bunker</strong>
-                    <div style="font-size:0.8rem; color:#94a3b8">Solo WiFi Locale (Più privacy)</div>
-                </div>
-                <label class="switch">
-                    <input type="checkbox" id="modeSwitch">
-                    <span class="slider"></span>
-                </label>
-            </div>
-            
-            <div style="text-align:center; margin-top:20px;">
-                <canvas id="qr-canvas" style="display:none; margin: 0 auto; border: 6px solid white; border-radius: 8px;"></canvas>
-                <div id="loading-txt" style="color:#94a3b8">Inizializzazione...</div>
-                <div id="link-box" class="hidden" style="margin-top:15px; color:var(--accent); text-decoration:underline; cursor:pointer;" onclick="copyLink()">
-                    Copia Link Connessione
+            <div style="text-align:center;">
+                <canvas id="qr-canvas" style="display:none; margin: 0 auto; border: 5px solid white; border-radius: 6px;"></canvas>
+                <div id="loading-txt" style="color:#94a3b8; margin: 20px 0;">Creazione Rete Locale...</div>
+                
+                <div id="link-box" class="hidden">
+                    <div style="margin-bottom:5px; color:#cbd5e1">Scansiona o condividi:</div>
+                    <span class="btn-link" onclick="copyLink()">Copia Link Diretto</span>
                 </div>
             </div>
         </div>
 
         <div id="guest-mode" class="hidden" style="text-align:center; padding:20px;">
-            <h3>🔗 Connessione...</h3>
-            <p style="color:#94a3b8">Non chiudere questa pagina.</p>
+            <h3>🔗 Connessione in corso...</h3>
+            <p style="color:#94a3b8">Assicurati di essere sulla stessa WiFi.</p>
         </div>
     </div>
 
-    <!-- TRANSFER PANEL -->
+    <!-- AREA TRASFERIMENTO -->
     <div id="panel-transfer" class="hidden">
+        
+        <!-- TUNING PERFORMANCE -->
+        <div class="controls-row">
+            <span>🚀 Performance Tuning</span>
+            <select id="chunk-selector">
+                <option value="16384">16 KB (Safe)</option>
+                <option value="65536">64 KB</option>
+                <option value="262144">256 KB</option>
+                <option value="524288" selected>512 KB (Default)</option>
+                <option value="1048576">1 MB (Fastest)</option>
+            </select>
+        </div>
+
         <div class="card">
             <label class="upload-zone">
-                <div style="font-size:3rem; margin-bottom:10px">📂</div>
-                <div style="font-size:1.1rem; font-weight:600">Tocca per inviare</div>
-                <div style="font-size:0.9rem; color:#94a3b8; margin-top:5px">Scrittura Diretta su Disco</div>
+                <div style="font-size:2.5rem; margin-bottom:10px">📂</div>
+                <div style="font-weight:600">Tocca per inviare file</div>
                 <input type="file" id="fileInput" multiple>
             </label>
         </div>
@@ -125,55 +119,52 @@
 
 </div>
 
-<!-- TEMPLATES -->
+<!-- TEMPLATE FILE -->
 <template id="tpl-file">
     <div class="file-item">
-        <button class="btn-trash">🗑️</button>
-        <div style="font-weight:600; margin-bottom:5px" class="t-name">File.ext</div>
-        <div style="font-size:0.8rem; color:#94a3b8" class="t-meta">Attesa...</div>
+        <div style="display:flex; justify-content:space-between">
+            <div style="font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:80%" class="t-name">File</div>
+            <div style="font-size:0.8rem; opacity:0.7" class="t-pct">0%</div>
+        </div>
+        <div style="font-size:0.75rem; color:#94a3b8; margin-top:2px" class="t-meta">In attesa...</div>
         <div class="progress-track"><div class="progress-bar"></div></div>
     </div>
 </template>
 
 <script>
-    // --- SETTINGS ---
-    const CHUNK_SIZE = 512 * 1024; // 512KB (Ridotto per stabilità su Android)
-    const BUFFER_LIMIT = 8 * 1024 * 1024; // 8MB Max Buffer
-    const BUFFER_DRAIN = 1 * 1024 * 1024; // 1MB Drain Target (Aspetta che si svuoti fino a qui)
-    
+    // --- CONFIGURAZIONE LAN ---
+    // Nessun server STUN/TURN = Il browser cercherà solo IP locali.
+    const PEER_CONFIG = {
+        iceServers: [], 
+        debug: 0
+    };
+
     streamSaver.mitm = 'https://jimmywarting.github.io/StreamSaver.js/mitm.html?version=2.0.0';
 
-    // --- STATE ---
+    // --- STATO ---
     const state = {
-        peer: null, conn: null, myId: null,
-        isLan: localStorage.getItem('lanMode') !== 'false',
-        wakeLock: null
+        peer: null,
+        conn: null,
+        chunkSize: 524288 // Default 512KB
     };
 
     const els = {
         status: document.getElementById('status-icon'),
-        modeSwitch: document.getElementById('modeSwitch'),
         qr: document.getElementById('qr-canvas'),
         fileInput: document.getElementById('fileInput'),
-        fileList: document.getElementById('file-list')
+        fileList: document.getElementById('file-list'),
+        chunkSel: document.getElementById('chunk-selector')
     };
 
-    // --- WAKE LOCK ---
-    async function requestWakeLock() {
-        if ('wakeLock' in navigator) {
-            try { state.wakeLock = await navigator.wakeLock.request('screen'); } catch {}
-        }
-    }
+    // --- TUNING DINAMICO ---
+    els.chunkSel.addEventListener('change', (e) => {
+        state.chunkSize = parseInt(e.target.value);
+        console.log("Chunk Size modificato a:", state.chunkSize);
+    });
 
     // --- INIT ---
     const urlParams = new URLSearchParams(window.location.search);
     const targetId = urlParams.get('connectTo');
-
-    els.modeSwitch.checked = state.isLan;
-    els.modeSwitch.addEventListener('change', (e) => {
-        localStorage.setItem('lanMode', e.target.checked);
-        location.reload();
-    });
 
     if (targetId) {
         document.getElementById('host-mode').classList.add('hidden');
@@ -183,21 +174,21 @@
         initPeer(null);
     }
 
-    function initPeer(connectTo) {
-        const config = { 
-            iceServers: state.isLan ? [] : [{ urls: 'stun:stun.l.google.com:19302' }],
-            debug: 0 
-        };
+    async function initPeer(connectTo) {
+        // Genera ID breve
+        const myId = Math.random().toString(36).substr(2, 5).toUpperCase();
         
         try {
-            state.peer = new Peer(Math.random().toString(36).substr(2, 5).toUpperCase(), { config });
-        } catch(e) { console.error(e); }
+            state.peer = new Peer(myId, { config: PEER_CONFIG });
+        } catch(e) { 
+            console.error("Peer Init Error:", e);
+        }
 
         state.peer.on('open', (id) => {
             if (!connectTo) {
-                // Host Logic
+                // HOST
                 const url = window.location.href.split('?')[0] + '?connectTo=' + id;
-                QRCode.toCanvas(els.qr, url, { width: 200, margin: 1 }, () => {
+                QRCode.toCanvas(els.qr, url, { width: 220, margin: 2, color: { dark: "#000", light: "#FFF" } }, () => {
                     els.qr.style.display = 'block';
                     document.getElementById('loading-txt').style.display = 'none';
                     const linkBox = document.getElementById('link-box');
@@ -205,22 +196,32 @@
                     linkBox.dataset.link = url;
                 });
             } else {
-                // Guest Logic
-                const c = state.peer.connect(connectTo, { reliable: true });
+                // GUEST: Connessione Reliable
+                const c = state.peer.connect(connectTo, { reliable: true, label: 'file-transfer' });
                 setupConn(c);
             }
         });
 
         state.peer.on('connection', (c) => setupConn(c));
-        
-        // GESTIONE ERRORI INTELLIGENTE
+
+        // --- GESTIONE ERRORI MIGLIORATA ---
         state.peer.on('error', err => {
-            console.warn("Peer Warning:", err);
-            // Mostra crash SOLO se è un errore fatale
-            if (err.type === 'peer-unavailable' || err.type === 'disconnected' || err.type === 'network') {
-                els.status.innerText = "💥";
-                alert("Errore critico connessione: " + err.type);
+            console.log("Peer Error:", err.type); // Log silenzioso
+            // Alert solo se fatal
+            if (['disconnected', 'network', 'webrtc'].includes(err.type)) {
+                // Tentativo di riconnessione automatico o avviso soft
+                els.status.innerText = "⚠️"; 
+                if(err.type === 'network') alert("Problema di rete. Controlla il WiFi.");
             }
+        });
+
+        state.peer.on('disconnected', () => {
+             // GitHub pages spesso disconnette il socket Signaling se inattivo,
+             // ma la connessione P2P (dataChannel) rimane attiva!
+             // Quindi NON mostriamo errori all'utente se state.conn è attivo.
+             if(!state.conn || !state.conn.open) {
+                 state.peer.reconnect();
+             }
         });
     }
 
@@ -231,51 +232,57 @@
             document.getElementById('panel-setup').classList.add('hidden');
             document.getElementById('panel-transfer').classList.remove('hidden');
             els.status.innerText = "🚀";
-            requestWakeLock();
+            
+            // Wake Lock per evitare spegnimento schermo durante trasferimenti lunghi
+            if ('wakeLock' in navigator) navigator.wakeLock.request('screen').catch(()=>{});
         });
 
         c.on('data', d => handleData(d));
-        c.on('close', () => els.status.innerText = "💥");
-        // Non settiamo l'icona crash su 'error' generico della connessione
-        c.on('error', e => console.error("Conn Error (Ignorato se non critico):", e));
+        c.on('close', () => { els.status.innerText = "❌"; alert("Partner disconnesso"); });
+        c.on('error', e => console.warn("Conn Error:", e));
     }
 
-    // --- SENDER CORE (DEEP DRAIN LOGIC) ---
+    // --- INVIO (Deep Drain + Dynamic Chunking) ---
     els.fileInput.addEventListener('change', async (e) => {
         const files = Array.from(e.target.files);
-        if(!state.conn || !state.conn.open) return alert("Non connesso!");
+        if(!state.conn || !state.conn.open) return alert("Aspetta la connessione!");
 
         for (const file of files) {
             const ui = createLogUI(file.name, 'sending');
             const fileId = Math.random().toString(36).substr(2);
+            const CHUNK = state.chunkSize; // Legge il valore corrente dal selettore
 
+            // Header
             state.conn.send({ type: 'HEAD', id: fileId, name: file.name, size: file.size });
 
             let offset = 0;
             const startTime = Date.now();
+            
+            // Buffer thresholds basati sul chunk size per ottimizzare
+            const BUFFER_MAX = 8 * 1024 * 1024; // 8MB Hard limit
+            const BUFFER_LOW = CHUNK * 2; // Ripartiamo quando c'è spazio per 2 chunk
 
             try {
                 while (offset < file.size) {
                     const buffered = state.conn.dataChannel.bufferedAmount;
                     
-                    // --- LOGICA CHIAVE: DEEP DRAIN ---
-                    // Se il buffer è pieno, aspettiamo che si SVUOTI quasi del tutto
-                    if (buffered > BUFFER_LIMIT) {
-                        ui.meta.innerText = "Pausa Buffer (Network saturo)...";
-                        while (state.conn.dataChannel.bufferedAmount > BUFFER_DRAIN) {
-                            await new Promise(r => setTimeout(r, 50)); // Attesa attiva
+                    // Backpressure Control
+                    if (buffered > BUFFER_MAX) {
+                        ui.meta.innerText = "Saturazione Rete (Wait)...";
+                        // Aspetta finché il buffer non scende sotto la soglia bassa
+                        while (state.conn.dataChannel.bufferedAmount > BUFFER_LOW) {
+                            await new Promise(r => setTimeout(r, 10)); 
                         }
                     }
 
-                    // Lettura Chunk
-                    const chunk = file.slice(offset, offset + CHUNK_SIZE);
-                    const buffer = await chunk.arrayBuffer();
+                    const chunkBlob = file.slice(offset, offset + CHUNK);
+                    const buffer = await chunkBlob.arrayBuffer();
                     
                     state.conn.send({ type: 'CHUNK', id: fileId, data: buffer });
                     offset += buffer.byteLength;
 
-                    // Update UI ogni tanto
-                    if (offset % (CHUNK_SIZE * 5) === 0 || offset >= file.size) {
+                    // UI Update (Throttled)
+                    if (offset % (CHUNK * 4) === 0 || offset >= file.size) {
                         updateLogUI(ui, offset, file.size, startTime);
                     }
                 }
@@ -285,13 +292,13 @@
 
             } catch (err) {
                 console.error(err);
-                finalizeUI(ui, "Errore Invio", false);
+                finalizeUI(ui, "Errore", false);
             }
         }
         els.fileInput.value = ''; 
     });
 
-    // --- RECEIVER CORE ---
+    // --- RICEZIONE ---
     const streams = {}; 
 
     function handleData(d) {
@@ -300,7 +307,7 @@
             try {
                 const ws = streamSaver.createWriteStream(d.name, { size: d.size });
                 streams[d.id] = { writer: ws.getWriter(), received: 0, size: d.size, start: Date.now(), ui };
-            } catch(e) { finalizeUI(ui, "Err StreamSaver", false); }
+            } catch(e) { finalizeUI(ui, "Err FS", false); }
         } 
         else if (d.type === 'CHUNK') {
             const s = streams[d.id];
@@ -308,8 +315,8 @@
                 s.writer.write(new Uint8Array(d.data));
                 s.received += d.data.byteLength;
                 
-                // Aggiornamento UI throttled
-                if(s.received % (CHUNK_SIZE * 5) === 0 || s.received === s.size) {
+                // Aggiornamento UI meno frequente per non bloccare il thread
+                if (Math.random() > 0.8 || s.received === s.size) {
                     updateLogUI(s.ui, s.received, s.size, s.start);
                 }
             }
@@ -318,7 +325,7 @@
             const s = streams[d.id];
             if(s) {
                 s.writer.close();
-                finalizeUI(s.ui, "Salvato su Disco", true);
+                finalizeUI(s.ui, "Salvato", true);
                 delete streams[d.id];
             }
         }
@@ -329,29 +336,30 @@
         const tpl = document.getElementById('tpl-file').content.cloneNode(true);
         const el = tpl.querySelector('.file-item');
         const meta = tpl.querySelector('.t-meta');
+        const pct = tpl.querySelector('.t-pct');
         const bar = tpl.querySelector('.progress-bar');
-        const trash = tpl.querySelector('.btn-trash');
         
         el.classList.add(mode);
         tpl.querySelector('.t-name').innerText = name;
-        
-        trash.onclick = () => el.remove();
         els.fileList.prepend(el);
         
-        return { el, meta, bar };
+        return { el, meta, bar, pct };
     }
 
     function updateLogUI(ui, curr, total, start) {
-        const pct = ((curr / total) * 100).toFixed(0);
-        ui.bar.style.width = pct + "%";
+        const p = ((curr / total) * 100).toFixed(0);
+        ui.bar.style.width = p + "%";
+        ui.pct.innerText = p + "%";
         
         const sec = (Date.now() - start) / 1000;
+        // Calcolo velocità in MB/s
         const speed = sec > 0 ? (curr/1024/1024 / sec).toFixed(1) : 0;
-        ui.meta.innerText = `${pct}% • ${speed} MB/s`;
+        ui.meta.innerText = `${speed} MB/s`;
     }
 
     function finalizeUI(ui, msg, success) {
         ui.meta.innerText = msg;
+        ui.pct.innerText = success ? "✓" : "!";
         ui.bar.style.background = success ? "var(--success)" : "var(--danger)";
     }
 
